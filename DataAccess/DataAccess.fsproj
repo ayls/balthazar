@@ -5,7 +5,8 @@
   </PropertyGroup>
 
   <ItemGroup>
-    <Compile Include="Import.fs" />
+    <Compile Include="BookmarkStorage.fs" />
+    <Compile Include="BookmarkImport.fs" />
   </ItemGroup>
 
   <ItemGroup>
