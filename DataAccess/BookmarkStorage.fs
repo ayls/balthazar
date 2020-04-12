@@ -2,48 +2,63 @@
 
 open Microsoft.WindowsAzure.Storage
 open Microsoft.WindowsAzure.Storage.Table
+open System
 
 module BookmarkStorage =
-    type BookmarkRecord(bookmarkCollectionId: string, recordId: string, parentRowKey: string, name: string, url: string, isFolder: bool) =
-        inherit TableEntity(partitionKey=bookmarkCollectionId, rowKey=recordId)
+    type BookmarkRecord(bookmarkCollectionId: string, rowKey: string, parentRowKey: string, name: string, url: string, isFolder: bool) =
+        inherit TableEntity(partitionKey=bookmarkCollectionId, rowKey=rowKey)
         new() = BookmarkRecord(null, null, null, null, null, false)
         member val ParentRowKey = parentRowKey with get, set
         member val Name = name with get, set
         member val Url = url with get, set
         member val IsFolder = isFolder with get, set
+        static member initialize(bookmarkCollectionId: string, parentRowKey: string, name: string, url: string, isFolder: bool) = 
+            let rowKey = Guid.NewGuid().ToString()
+            BookmarkRecord.initialize(bookmarkCollectionId, rowKey, parentRowKey, name, url, isFolder)
+        static member initialize(bookmarkCollectionId: string, rowKey: string, parentRowKey: string, name: string, url: string, isFolder: bool) = 
+            new BookmarkRecord(bookmarkCollectionId, rowKey, parentRowKey, name, url, isFolder)
 
     type BookmarkTable(connectionString: string) =
-        member val private ConnectionString = connectionString
-        member val private Table: CloudTable = null with get, set
+        member val private connectionString = connectionString
+        member val private table: CloudTable = null with get, set
         member private this.openTable() = 
-            match this.Table with
+            match this.table with
             | null -> 
-                let storageAccount = CloudStorageAccount.Parse(this.ConnectionString)
-                let tableClient = storageAccount.CreateCloudTableClient()
-                this.Table <- tableClient.GetTableReference("Bookmarks")        
-                this.Table.CreateIfNotExistsAsync() 
+                CloudStorageAccount.Parse(this.connectionString)
+                |> fun storageAccount -> storageAccount.CreateCloudTableClient()
+                |> fun tableClient -> this.table <- tableClient.GetTableReference("Bookmarks")
+                |> fun _ -> this.table.CreateIfNotExistsAsync() 
                 |> Async.AwaitTask 
-                |> Async.RunSynchronously 
+                |> Async.RunSynchronously
                 |> ignore
             | _ -> ()
-        member this.insert(bookmarkRecord:BookmarkRecord) =
-            let insertOp = TableOperation.Insert(bookmarkRecord)        
+        member this.insert(bookmarkCollectionId: string, parentRowKey: string, name: string, url: string, isFolder: bool) =
             this.openTable()
-            this.Table.ExecuteAsync(insertOp)
+            |> fun _ -> BookmarkRecord.initialize(bookmarkCollectionId, parentRowKey, name, url, isFolder)
+            |> fun bookmarkRecord -> TableOperation.Insert(bookmarkRecord)
+            |> this.table.ExecuteAsync
             |> Async.AwaitTask
             |> Async.RunSynchronously
-            |> ignore
+            |> fun tableResult -> tableResult.Result
+        member this.insert(bookmarkCollectionId: string, rowKey: string, parentRowKey: string, name: string, url: string, isFolder: bool) =
+            this.openTable()
+            |> fun _ -> BookmarkRecord.initialize(bookmarkCollectionId, rowKey, parentRowKey, name, url, isFolder)
+            |> fun bookmarkRecord -> TableOperation.Insert(bookmarkRecord)
+            |> this.table.ExecuteAsync
+            |> Async.AwaitTask
+            |> Async.RunSynchronously
+            |> fun tableResult -> tableResult.Result
         member this.update(bookmarkRecord:BookmarkRecord) =
-            let replaceOp = TableOperation.Replace(bookmarkRecord)      
             this.openTable()
-            this.Table.ExecuteAsync(replaceOp)
+            |> fun _ -> TableOperation.Replace(bookmarkRecord)        
+            |> this.table.ExecuteAsync
             |> Async.AwaitTask
             |> Async.RunSynchronously
-            |> ignore
+            |> fun tableResult -> tableResult.Result
         member this.delete(bookmarkRecord:BookmarkRecord) =
-            let deleteOp = TableOperation.Delete(bookmarkRecord)        
             this.openTable()
-            this.Table.ExecuteAsync(deleteOp)
+            |> fun _ -> TableOperation.Delete(bookmarkRecord)        
+            |> this.table.ExecuteAsync
             |> Async.AwaitTask
             |> Async.RunSynchronously
             |> ignore
@@ -55,7 +70,7 @@ module BookmarkStorage =
             this.openTable()
             let asyncQuery = 
                 let rec loop(cont: TableContinuationToken) = async {
-                    let! result = this.Table.ExecuteQuerySegmentedAsync(query, cont) |> Async.AwaitTask
+                    let! result = this.table.ExecuteQuerySegmentedAsync(query, cont) |> Async.AwaitTask
                     let bookmarks = new System.Collections.Generic.List<BookmarkRecord>(result)
                     match result.ContinuationToken with
                     | null -> return bookmarks

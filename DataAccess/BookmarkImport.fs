@@ -1,16 +1,14 @@
 ﻿namespace DataAccess
 
-open System
 open System.IO
 open System.Linq
 open BookmarksManager
 open BookmarkStorage
 
 module BookmarkImport =
-    let private readExport(path: string) =
-        use file = File.OpenRead(path)
+    let private readExport(stream: Stream) =
         let reader = new NetscapeBookmarksReader()
-        reader.Read(file)
+        reader.Read(stream)
 
     let rec private importExport(table:BookmarkTable, bookmarkCollectionId: string, bookmarkItem:IBookmarkItem, parentBookmarkItem:IBookmarkFolder) =
         let recordId = bookmarkItem.GetHashCode().ToString()
@@ -19,17 +17,16 @@ module BookmarkImport =
             | null -> ""
             | _ -> parentBookmarkItem.GetHashCode().ToString()
         match bookmarkItem with
-        | :? IBookmarkFolder as folder -> new BookmarkRecord(bookmarkCollectionId, recordId, parentRecordId, folder.Title, "", true) |> table.insert
-        | :? IBookmarkLink as link -> new BookmarkRecord(bookmarkCollectionId, recordId, parentRecordId, link.Title, link.Url, false) |> table.insert
+        | :? IBookmarkFolder as folder -> table.insert(bookmarkCollectionId, recordId, parentRecordId, folder.Title, "", true) |> ignore
+        | :? IBookmarkLink as link -> table.insert(bookmarkCollectionId, recordId, parentRecordId, link.Title, link.Url, false) |> ignore
         | _ -> ()
         match bookmarkItem with
         | :? IBookmarkFolder as folder -> for item in folder do importExport(table, bookmarkCollectionId, item, folder)
         | _ -> ()
 
-    let import(path: string, connectionString: string) = 
+    let import(stream: Stream, connectionString: string, bookmarkCollectionId: string) = 
         let table = new BookmarkTable(connectionString)
-        let bookmarkCollectionId = Guid.NewGuid().ToString()
-        let bookmarkExport = readExport path
+        let bookmarkExport = readExport(stream)
         let rootBookmarkFolder = bookmarkExport.First()
         importExport(table, bookmarkCollectionId, rootBookmarkFolder, null)
 
