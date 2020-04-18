@@ -1,66 +1,46 @@
 <template>
   <div class="bookmark-tree-node">
-    <div v-if="isEditing" class="bookmark-edit">
-      <div>
-        <el-button
-          type="primary"
-          icon="el-icon-check"
-          circle
-          size="mini"
-          @click="() => endEdit(true)">
-        </el-button>
-        <el-button
-          type="danger"
-          icon="el-icon-close"
-          circle
-          size="mini"
-          @click="() => endEdit(false)">
-        </el-button>                
-      </div>      
+    <div v-if="isEditing" class="bookmark-edit">  
       <div>
         <el-input placeholder="Name" v-model="name" size="mini"></el-input>      
       </div>
       <div v-if="!bookmark.isFolder">
         <el-input placeholder="url" v-model="url" size="mini"></el-input>                
       </div>
+      <div>
+        <el-button
+          icon="el-icon-check"
+          circle
+          size="mini"
+          @click="() => endEdit(true)">
+        </el-button>
+        <el-button
+          icon="el-icon-close"
+          circle
+          size="mini"
+          @click="() => endEdit(false)">
+        </el-button>                
+      </div>         
     </div>
     <div v-else class="bookmark-readonly">
       <div v-if="isFolder">{{ name }}</div>                      
       <div v-else>
-        <a v-bind:href="url" target="_blank"><span>{{ name }}</span></a>              
+        <a :href="url" target="_blank"><span>{{ name }}</span></a>              
       </div>                 
     </div>            
     <div>
-      <div v-if="isFolder">
-        <el-button
-          icon="el-icon-folder-add"
-          circle
-          size="mini"
-          @click="() => append(true)">
-        </el-button>              
-        <el-button
-          icon="el-icon-plus"
-          circle
-          size="mini"
-          @click="() => append(false)">
-        </el-button>
-      </div>
-      <div v-else class="bookmark-append-placeholder"></div>
-      <div>
-        <el-button
-          icon="el-icon-edit"
-          circle
-          size="mini"
-          @click="() => beginEdit()">
-        </el-button>              
-        <el-button
-          type="danger"
-          icon="el-icon-delete"
-          circle
-          size="mini"
-          @click="() => remove()">
-        </el-button>
-      </div>
+      <el-dropdown 
+        @command="handleCommand">
+        <span class="el-dropdown-link">
+          <i class="el-icon-more el-icon--right"></i>
+        </span>
+        <el-dropdown-menu slot="dropdown">
+          <el-dropdown-item v-if="isFolder" command="addFolder">New folder</el-dropdown-item>
+          <el-dropdown-item v-if="isFolder" command="addUrl">New url</el-dropdown-item>
+          <el-dropdown-item :divided="isFolder" command="edit">Edit</el-dropdown-item>
+          <el-dropdown-item class="danger-command" command="delete">Delete</el-dropdown-item>          
+        </el-dropdown-menu>
+      </el-dropdown>
     </div>
   </div>  
 </template>
@@ -101,6 +81,23 @@ export default Vue.component('bookmark', {
     }
   },  
   methods: {
+    handleCommand(command: any) {
+      switch (command) {
+        case 'addFolder':
+          this.append(true);
+          break;
+        case 'addUrl':
+          this.append(false);
+          break;
+        case 'edit':
+          this.beginEdit();
+          break;
+        case 'delete':
+          this.remove();
+          break;
+      }
+      console.log(command)
+    },
     append(isFolder: boolean) {
       const bookmark = this.bookmark;
       this.$store.commit('append', { bookmark, isFolder });
@@ -135,23 +132,22 @@ div.bookmark-edit {
   display: flex;
 }
 
-div.bookmark-edit > div:first-child {
+div.bookmark-edit > div:last-child {
   width: 62px;
 }
 
 div.bookmark-edit > div:nth-child(2) {
-  flex:0.4;
-  padding-left: 5px;
+  flex:1;
   padding-right: 5px; 
 }
 
-div.bookmark-edit > div:last-child {
-  flex:1;
+div.bookmark-edit > div:first-child {
+  flex:0.4;
   padding-right: 5px;  
 }
 
-.bookmark-append-placeholder {
-  width: 62px;
+.danger-command {
+  color: crimson;
 }
 
 .bookmark-tree-node .el-button+.el-button  {

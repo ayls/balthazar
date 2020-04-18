@@ -23,7 +23,7 @@
           :allow-drop="allowDrop"
           ref="tree">
           <div class="bookmark-tree-node-container" slot-scope="{ node, data }">
-            <bookmark v-bind:node="node" v-bind:bookmark="data"></bookmark>
+            <bookmark :node="node" :bookmark="data"></bookmark>
           </div>        
         </el-tree>
       </div>
