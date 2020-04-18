@@ -73,7 +73,7 @@ export default Vue.component('bookmark', {
   computed: {
     name: {
       get() {
-        return this.bookmark.label;
+        return this.bookmark.record.name;
       },
       set(text) {
         const bookmark = this.bookmark;
@@ -82,7 +82,7 @@ export default Vue.component('bookmark', {
     },
     url: {
       get() {
-        return this.bookmark.url;
+        return this.bookmark.record.url;
       },
       set(text) {
         const bookmark = this.bookmark;
@@ -96,7 +96,7 @@ export default Vue.component('bookmark', {
     },
     isFolder: {
       get() {
-        return this.bookmark.isFolder;
+        return this.bookmark.record.isFolder;
       }
     }
   },  

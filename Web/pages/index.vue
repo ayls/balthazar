@@ -43,7 +43,7 @@ export default Vue.extend({
   data() {
     return {
       filterText: '',
-      bookmarks: _.cloneDeep(this.$store.state.bookmarks)
+      bookmarks: _.cloneDeep(this.$store.state.bookmarks) // cloning is necessary due to Tree component changing the data on drag and drop, breaking VueX store constraints
     };
   },
   watch: {
