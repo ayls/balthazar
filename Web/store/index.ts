@@ -1,4 +1,29 @@
-export const state = () => ({
+import _ from 'lodash'
+
+export interface BookmarkState {
+  bookmarks: BookmarkStateItem[]
+}
+
+export interface BookmarkStateItem {
+  id: string,
+  record: BookmarkRecord,
+  isEditing: boolean,
+  children: BookmarkStateItem[]
+}
+
+export interface BookmarkRecord {
+  parentRowKey: string,
+  order: number,
+  name: string,
+  url: string,
+  isFolder: boolean,
+  partitionKey: string,
+  rowKey: string,
+  timestamp: string,
+  eTag: string
+}
+
+export const state = (): BookmarkState => ({
   bookmarks: [
     {
       id: "51613143",
@@ -97,51 +122,56 @@ export const state = () => ({
 })
 
 export const mutations = {
-  append(state: any, { bookmark, isFolder }: any) {
-    applyToAllBookmarks({ children: state.bookmarks }, (b: any) => {
-      if (!b.id) {
+  append(state: BookmarkState, { bookmark, isFolder }: { bookmark: BookmarkStateItem, isFolder: boolean }) {
+    applyToAllBookmarks({ children: state.bookmarks } as BookmarkStateItem, (b: BookmarkStateItem) => {
+      if (!b.id && b.isEditing) {
         removeBookmark(state.bookmarks, b);
       } else {
         b.isEditing = false;
       }
     });    
-    const newChild = { 
+    const newChild = {
+      id: '',
       record: { 
         parentRowKey: bookmark.id,
         order: bookmark.children.length,
         name: '', 
         url: '',
-        isFolder: isFolder
+        isFolder: isFolder,
+        partitionKey: '',
+        rowKey: '',
+        timestamp: '',
+        eTag: ''
       },
       isEditing: true, 
-      children: [] };
-    bookmark.children.push(newChild);
+      children: [] } as BookmarkStateItem;
+      bookmark.children.push(newChild);
   },
-  setParent(state: any, { bookmark, referenceBookmark, dropType }: any) {
+  setParent(state: BookmarkState, { bookmark, referenceBookmark, type }: { bookmark: BookmarkStateItem, referenceBookmark: BookmarkStateItem, type: string }) {
     removeBookmark(state.bookmarks, bookmark);
-    if (dropType === 'inner') {
-      findBookmark(state.bookmarks, referenceBookmark).children.push(bookmark);
+    if (type === 'inner') {
+      referenceBookmark.children.push(_.cloneDeep(bookmark));
     } else {
-      const root = { children: state.bookmarks };
+      const root = { children: state.bookmarks } as BookmarkStateItem;
       const referenceBookmarkParent = findBookmarkParent(root, referenceBookmark);
-      const referenceBookmarkIndex = referenceBookmarkParent.children.indexOf(findBookmark(referenceBookmarkParent.children, referenceBookmark));
+      const referenceBookmarkIndex = referenceBookmarkParent!.children.indexOf(referenceBookmark);
       let insertIndex: number;
-      switch (dropType) {
+      switch (type) {
         case 'before':
-          insertIndex = Math.max(0, referenceBookmarkIndex - 1);
+          insertIndex = referenceBookmarkIndex;
           break;
         case 'after':
-          insertIndex = Math.max(referenceBookmarkParent.children.length - 1, referenceBookmarkIndex + 1);        
+          insertIndex = Math.max(referenceBookmarkParent!.children.length - 1, referenceBookmarkIndex + 1);        
           break;     
         default:
           insertIndex = 0;
-      }    
-      referenceBookmarkParent.children.splice(insertIndex, 0, bookmark);
+      }
+      referenceBookmarkParent!.children.splice(insertIndex, 0, _.cloneDeep(bookmark));
     } 
   },  
-  beginEdit(state: any, { bookmark }: any) {
-    applyToAllBookmarks({ children: state.bookmarks }, (b: any) => {
-      if (!b.id) {
+  beginEdit(state: BookmarkState, { bookmark }: any) {
+    applyToAllBookmarks({ children: state.bookmarks } as BookmarkStateItem, (b: BookmarkStateItem) => {
+      if (!b.id && b.isEditing) {
         removeBookmark(state.bookmarks, b);
       } else if (b.id !== bookmark.id) {
         b.isEditing = false;
@@ -149,34 +179,34 @@ export const mutations = {
     });
     bookmark.isEditing = true;
   },
-  updateName(state: any, { bookmark, text }: any) {
+  updateName(state: BookmarkState, { bookmark, text }: { bookmark: BookmarkStateItem, text: string }) {
     bookmark.record.name = text;
   },  
-  updateUrl(state: any, { bookmark, text }: any) {
+  updateUrl(state: BookmarkState, { bookmark, text }: { bookmark: BookmarkStateItem, text: string }) {
     bookmark.record.url = text;
   },    
-  endEdit(state: any, { bookmark, confirmed }: any) {
+  endEdit(state: BookmarkState, { bookmark, confirmed }: { bookmark: BookmarkStateItem, confirmed: boolean }) {
     if (!confirmed && !bookmark.id) {
       removeBookmark(state.bookmarks, bookmark);
     } else {
       bookmark.isEditing = false;
     }
   },
-  remove(state: any, { bookmark }: any) {
-    const bookmarkParent = findBookmarkParent({ children: state.bookmarks }, bookmark);
-    removeBookmark(bookmarkParent.children, bookmark);    
+  remove(state: BookmarkState, { bookmark }: { bookmark: BookmarkStateItem }) {
+    const bookmarkParent = findBookmarkParent({ children: state.bookmarks } as BookmarkStateItem, bookmark);
+    removeBookmark(bookmarkParent!.children, bookmark);    
   }
 }
 
-function applyToAllBookmarks(bookmark: any, action: (b: any) => void): any {
+function applyToAllBookmarks(bookmark: BookmarkStateItem, action: (b: BookmarkStateItem) => void): void {
   action(bookmark);
   for(const item of bookmark.children) {
     applyToAllBookmarks(item, action);
   }
 }
 
-function findBookmark(bookmarks: any, bookmark: any): any {
-  const foundBookmark = bookmarks.find((b: any) => bookmark.id === b.id);
+function findBookmark(bookmarks: BookmarkStateItem[], bookmark: BookmarkStateItem): BookmarkStateItem | null {
+  const foundBookmark = bookmarks.find((b: BookmarkStateItem) => bookmark === b);
   if (foundBookmark) {
     return foundBookmark;
   } else {
@@ -187,10 +217,12 @@ function findBookmark(bookmarks: any, bookmark: any): any {
       }
     }
   }
+
+  return null;
 }
 
-function findBookmarkParent(parentBookmark: any, bookmark: any): any {
-  const foundBookmark = parentBookmark.children.find((b: any) => bookmark.id === b.id);
+function findBookmarkParent(parentBookmark: BookmarkStateItem, bookmark: BookmarkStateItem): BookmarkStateItem | null {
+  const foundBookmark = parentBookmark.children.find((b: BookmarkStateItem) => bookmark === b);
   if (foundBookmark) {
     return parentBookmark;    
   } else {    
@@ -201,14 +233,16 @@ function findBookmarkParent(parentBookmark: any, bookmark: any): any {
       }
     }
   }
+
+  return null;
 }
 
-function removeBookmark(bookmarks: any, bookmark: any): any {
-  const bookmarkToRemove = bookmarks.find((b: any) => bookmark.id === b.id);
+function removeBookmark(bookmarks: BookmarkStateItem[], bookmark: BookmarkStateItem): void {
+  const bookmarkToRemove = bookmarks.find((b: BookmarkStateItem) => bookmark === b);
   if (bookmarkToRemove) {
     bookmarks.splice(bookmarks.indexOf(bookmarkToRemove), 1);
   } else {
-    bookmarks.forEach((item: any) => {
+    bookmarks.forEach((item: BookmarkStateItem) => {
       removeBookmark(item.children, bookmark);
     });
   }

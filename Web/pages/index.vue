@@ -13,7 +13,7 @@
           placeholder="Search"
           v-model="filterText">
         </el-input>        
-        <el-tree
+        <customElTree
           :data="bookmarks"
           node-key="id"
           :expand-on-click-node="false"
@@ -25,7 +25,7 @@
           <div class="bookmark-tree-node-container" slot-scope="{ node, data }">
             <bookmark :node="node" :bookmark="data"></bookmark>
           </div>        
-        </el-tree>
+        </customElTree>
       </div>
     </div>
   </div>
@@ -33,32 +33,34 @@
 
 <script lang="ts">
 import Vue from 'vue'
+import { BookmarkStateItem } from '~/store/index.ts'
 import Bookmark from '~/components/Bookmark.vue'
-import _ from 'lodash'
+import CustomElTree from '~/components/CustomElTree.vue'
 
 export default Vue.extend({
   components: {
-    Bookmark
+    Bookmark,
+    CustomElTree
   },
   data() {
     return {
       filterText: '',
-      bookmarks: _.cloneDeep(this.$store.state.bookmarks) // cloning is necessary due to Tree component changing the data on drag and drop, breaking VueX store constraints
+      bookmarks: this.$store.state.bookmarks
     };
   },
   watch: {
-    filterText(val) {
+    filterText(val: string) {
       (this.$refs.tree as any).filter(val);
     }
   },  
   methods: {
-    handleDrop(draggingNode: any, dropNode: any, dropType: any, ev: any) {
-      this.$store.commit('setParent', { bookmark: draggingNode.data, referenceBookmark: dropNode.data, dropType });
+    handleDrop(draggingNode: any, dropNode: any, type: string, ev: DragEvent) {
+      this.$store.commit('setParent', { bookmark: draggingNode.data, referenceBookmark: dropNode.data, type });
     },
-    allowDrop(draggingNode: any, dropNode: any, type: any) {
+    allowDrop(draggingNode: any, dropNode: any, type: string) {
       return dropNode.data.record.isFolder;
     },
-    filterNode(value: any, data: any) {
+    filterNode(value: string, data: BookmarkStateItem) {
       if (!value) return true;
       const lowerCasedValue = value.toLowerCase();
       return (data.record.name.toLowerCase().indexOf(lowerCasedValue) !== -1) || (data.record.url.toLowerCase().indexOf(lowerCasedValue) !== -1);

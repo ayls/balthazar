@@ -79,9 +79,9 @@ export default Vue.component('bookmark', {
         return this.bookmark.record.isFolder;
       }
     }
-  },  
+  },
   methods: {
-    handleCommand(command: any) {
+    handleCommand(command: string) {
       switch (command) {
         case 'addFolder':
           this.append(true);
