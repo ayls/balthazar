@@ -56,12 +56,12 @@ export default Vue.extend({
       this.$store.commit('setParent', { bookmark: draggingNode.data, referenceBookmark: dropNode.data, dropType });
     },
     allowDrop(draggingNode: any, dropNode: any, type: any) {
-      return dropNode.data.isFolder;
+      return dropNode.data.record.isFolder;
     },
     filterNode(value: any, data: any) {
       if (!value) return true;
       const lowerCasedValue = value.toLowerCase();
-      return (data.label && data.label.toLowerCase().indexOf(lowerCasedValue) !== -1) || (data.url && data.url.toLowerCase().indexOf(lowerCasedValue) !== -1);
+      return (data.record.name.toLowerCase().indexOf(lowerCasedValue) !== -1) || (data.record.url.toLowerCase().indexOf(lowerCasedValue) !== -1);
     }
   }
 })
