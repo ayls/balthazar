@@ -5,18 +5,19 @@ open Microsoft.WindowsAzure.Storage.Table
 open System
 
 module BookmarkStorage =
-    type BookmarkRecord(bookmarkCollectionId: string, rowKey: string, parentRowKey: string, name: string, url: string, isFolder: bool) =
+    type BookmarkRecord(bookmarkCollectionId: string, rowKey: string, parentRowKey: string, order: int, name: string, url: string, isFolder: bool) =
         inherit TableEntity(partitionKey=bookmarkCollectionId, rowKey=rowKey)
-        new() = BookmarkRecord(null, null, null, null, null, false)
+        new() = BookmarkRecord(null, null, null, 0, null, null, false)
         member val ParentRowKey = parentRowKey with get, set
+        member val Order = order with get, set
         member val Name = name with get, set
         member val Url = url with get, set
         member val IsFolder = isFolder with get, set
-        static member initialize(bookmarkCollectionId: string, parentRowKey: string, name: string, url: string, isFolder: bool) = 
+        static member initialize(bookmarkCollectionId: string, parentRowKey: string, order: int, name: string, url: string, isFolder: bool) = 
             let rowKey = Guid.NewGuid().ToString()
-            BookmarkRecord.initialize(bookmarkCollectionId, rowKey, parentRowKey, name, url, isFolder)
-        static member initialize(bookmarkCollectionId: string, rowKey: string, parentRowKey: string, name: string, url: string, isFolder: bool) = 
-            new BookmarkRecord(bookmarkCollectionId, rowKey, parentRowKey, name, url, isFolder)
+            BookmarkRecord.initialize(bookmarkCollectionId, rowKey, parentRowKey, order, name, url, isFolder)
+        static member initialize(bookmarkCollectionId: string, rowKey: string, parentRowKey: string, order: int, name: string, url: string, isFolder: bool) = 
+            new BookmarkRecord(bookmarkCollectionId, rowKey, parentRowKey, order, name, url, isFolder)
 
     type BookmarkTable(connectionString: string) =
         member val private connectionString = connectionString
@@ -32,17 +33,17 @@ module BookmarkStorage =
                 |> Async.RunSynchronously
                 |> ignore
             | _ -> ()
-        member this.insert(bookmarkCollectionId: string, parentRowKey: string, name: string, url: string, isFolder: bool) =
+        member this.insert(bookmarkCollectionId: string, parentRowKey: string, order: int, name: string, url: string, isFolder: bool) =
             this.openTable()
-            |> fun _ -> BookmarkRecord.initialize(bookmarkCollectionId, parentRowKey, name, url, isFolder)
+            |> fun _ -> BookmarkRecord.initialize(bookmarkCollectionId, parentRowKey, order, name, url, isFolder)
             |> fun bookmarkRecord -> TableOperation.Insert(bookmarkRecord)
             |> this.table.ExecuteAsync
             |> Async.AwaitTask
             |> Async.RunSynchronously
             |> fun tableResult -> tableResult.Result
-        member this.insert(bookmarkCollectionId: string, rowKey: string, parentRowKey: string, name: string, url: string, isFolder: bool) =
+        member this.insert(bookmarkCollectionId: string, rowKey: string, parentRowKey: string, order: int, name: string, url: string, isFolder: bool) =
             this.openTable()
-            |> fun _ -> BookmarkRecord.initialize(bookmarkCollectionId, rowKey, parentRowKey, name, url, isFolder)
+            |> fun _ -> BookmarkRecord.initialize(bookmarkCollectionId, rowKey, parentRowKey, order, name, url, isFolder)
             |> fun bookmarkRecord -> TableOperation.Insert(bookmarkRecord)
             |> this.table.ExecuteAsync
             |> Async.AwaitTask

@@ -9,9 +9,10 @@ open System.IO
 open Newtonsoft.Json
 
 module Add =
-    type AddRequest(parentRowKey: string, name: string, url: string, isFolder: bool) =
-        new() = AddRequest(null, null, null, false)
+    type AddRequest(parentRowKey: string, order: int, name: string, url: string, isFolder: bool) =
+        new() = AddRequest(null, 0, null, null, false)
         member val ParentRowKey = parentRowKey with get, set
+        member val Order = order with get, set
         member val Name = name with get, set
         member val Url = url with get, set
         member val IsFolder = isFolder with get, set
@@ -25,6 +26,6 @@ module Add =
                 |> Async.AwaitTask
             let addRequest = JsonConvert.DeserializeObject<AddRequest>(body)
             let table = new BookmarkStorage.BookmarkTable(Config.getConnectionString)
-            return table.insert(Config.getPartitionKey, addRequest.ParentRowKey, addRequest.Name, addRequest.Url, addRequest.IsFolder)
+            return table.insert(Config.getPartitionKey, addRequest.ParentRowKey, addRequest.Order, addRequest.Name, addRequest.Url, addRequest.IsFolder)
         }
         |> Async.StartAsTask
