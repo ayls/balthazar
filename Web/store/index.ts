@@ -105,7 +105,16 @@ export const mutations = {
         b.isEditing = false;
       }
     });    
-    const newChild = { label: '', url: '', isEditing: true, isFolder: isFolder, children: [] };
+    const newChild = { 
+      record: { 
+        parentRowKey: bookmark.id,
+        order: bookmark.children.length,
+        name: '', 
+        url: '',
+        isFolder: isFolder
+      },
+      isEditing: true, 
+      children: [] };
     bookmark.children.push(newChild);
   },
   setParent(state: any, { bookmark, referenceBookmark, dropType }: any) {

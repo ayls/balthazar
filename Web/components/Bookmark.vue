@@ -4,7 +4,7 @@
       <div>
         <el-input placeholder="Name" v-model="name" size="mini"></el-input>      
       </div>
-      <div v-if="!bookmark.isFolder">
+      <div v-if="!isFolder">
         <el-input placeholder="url" v-model="url" size="mini"></el-input>                
       </div>
       <div>
@@ -132,16 +132,16 @@ div.bookmark-edit {
   display: flex;
 }
 
-div.bookmark-edit > div:last-child {
+div.bookmark-edit > div:nth-last-child(1) {
   width: 62px;
 }
 
-div.bookmark-edit > div:nth-child(2) {
+div.bookmark-edit > div:nth-last-child(2) {
   flex:1;
   padding-right: 5px; 
 }
 
-div.bookmark-edit > div:first-child {
+div.bookmark-edit > div:nth-last-child(3) {
   flex:0.4;
   padding-right: 5px;  
 }
