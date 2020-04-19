@@ -28,7 +28,7 @@ export const state = (): BookmarkState => ({
     {
       id: "51613143",
       record: {
-        parentRowKey: "20445251",
+        parentRowKey: "",
         order: 0,
         name: "Storage",
         url: "",
@@ -59,7 +59,7 @@ export const state = (): BookmarkState => ({
     {
       id: "61027891",
       record: {
-        parentRowKey: "1451457",
+        parentRowKey: "",
         order: 0,
         name: "Microsoft",
         url: "",
@@ -149,8 +149,10 @@ export const mutations = {
   },
   setParent(state: BookmarkState, { bookmark, referenceBookmark, type }: { bookmark: BookmarkStateItem, referenceBookmark: BookmarkStateItem, type: string }) {
     removeBookmark(state.bookmarks, bookmark);
-    if (type === 'inner') {
-      referenceBookmark.children.push(_.cloneDeep(bookmark));
+    const bookmarkCopy = _.cloneDeep(bookmark);
+    if (type === 'inner') {      
+      bookmarkCopy.record.parentRowKey = referenceBookmark.record.rowKey;
+      referenceBookmark.children.push(bookmarkCopy);      
     } else {
       const root = { children: state.bookmarks } as BookmarkStateItem;
       const referenceBookmarkParent = findBookmarkParent(root, referenceBookmark);
@@ -166,14 +168,15 @@ export const mutations = {
         default:
           insertIndex = 0;
       }
-      referenceBookmarkParent!.children.splice(insertIndex, 0, _.cloneDeep(bookmark));
+      bookmarkCopy.record.parentRowKey = referenceBookmarkParent != root ? referenceBookmarkParent!.record.rowKey : '';
+      referenceBookmarkParent!.children.splice(insertIndex, 0, bookmarkCopy);
     } 
   },  
   beginEdit(state: BookmarkState, { bookmark }: any) {
     applyToAllBookmarks({ children: state.bookmarks } as BookmarkStateItem, (b: BookmarkStateItem) => {
       if (!b.id && b.isEditing) {
         removeBookmark(state.bookmarks, b);
-      } else if (b.id !== bookmark.id) {
+      } else {
         b.isEditing = false;
       }
     });
