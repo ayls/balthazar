@@ -1,12 +1,29 @@
 <template>
   <div class="container">
     <div>
-      <h1 class="title">
-        balthazar
-      </h1>
-      <h2 class="subtitle">
-        bookmark manager
-      </h2>
+      <div class="titlebar">
+        <div>
+          <h1 class="title">
+            balthazar
+          </h1>
+          <h2 class="subtitle">
+            bookmark manager
+          </h2>
+        </div>
+        <div>
+          <el-dropdown 
+            @command="handleCommand">
+            <span class="el-dropdown-link">
+              <i class="el-icon-menu el-icon--right"></i>
+            </span>
+            <el-dropdown-menu slot="dropdown">
+              <el-dropdown-item command="import">Import</el-dropdown-item>
+              <el-dropdown-item command="addFolder">New folder</el-dropdown-item>          
+              <el-dropdown-item command="addUrl">New url</el-dropdown-item>                        
+            </el-dropdown-menu>
+          </el-dropdown>
+        </div>
+      </div>
       <div class="bookmarks">
         <el-input
           class="bookmark-filter"
@@ -54,6 +71,21 @@ export default Vue.extend({
     }
   },  
   methods: {
+    handleCommand(command: string) {
+      switch (command) {
+        case 'import':
+          break;        
+        case 'addFolder':
+          this.append(true);
+          break;
+        case 'addUrl':
+          this.append(false);
+          break;
+      }
+    },
+    append(isFolder: boolean) {
+      this.$store.commit('append', { bookmark: null, isFolder });
+    },    
     handleDrop(draggingNode: any, dropNode: any, type: string, ev: DragEvent) {
       this.$store.commit('setParent', { bookmark: draggingNode.data, referenceBookmark: dropNode.data, type });
     },
@@ -72,6 +104,23 @@ export default Vue.extend({
 <style>
 .container {
   margin: 20px 20px;
+}
+
+.titlebar {
+  display: flex;
+  width: 100%;
+}
+
+.titlebar > div:first-child {
+  flex: 1;
+}
+
+.titlebar > div:last-child {
+  margin-right: 5px;
+}
+
+.titlebar > div {
+  display: inline-block;
 }
 
 .title {

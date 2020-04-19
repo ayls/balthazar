@@ -129,12 +129,14 @@ export const mutations = {
       } else {
         b.isEditing = false;
       }
-    });    
+    });
+    const parentRowKey = bookmark ? bookmark.id : '';
+    const order = bookmark ? bookmark.children.length : state.bookmarks.length;   
     const newChild = {
       id: '',
       record: { 
-        parentRowKey: bookmark.id,
-        order: bookmark.children.length,
+        parentRowKey: parentRowKey,
+        order: order,
         name: '', 
         url: '',
         isFolder: isFolder,
@@ -144,8 +146,13 @@ export const mutations = {
         eTag: ''
       },
       isEditing: true, 
-      children: [] } as BookmarkStateItem;
+      children: [] 
+    } as BookmarkStateItem;
+    if (bookmark) {
       bookmark.children.push(newChild);
+    } else {
+      state.bookmarks.push(newChild);
+    }
   },
   setParent(state: BookmarkState, { bookmark, referenceBookmark, type }: { bookmark: BookmarkStateItem, referenceBookmark: BookmarkStateItem, type: string }) {
     removeBookmark(state.bookmarks, bookmark);

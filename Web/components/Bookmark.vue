@@ -96,7 +96,6 @@ export default Vue.component('bookmark', {
           this.remove();
           break;
       }
-      console.log(command)
     },
     append(isFolder: boolean) {
       const bookmark = this.bookmark;
@@ -133,7 +132,7 @@ div.bookmark-edit {
 }
 
 div.bookmark-edit > div:nth-last-child(1) {
-  width: 62px;
+  width: 65px;
 }
 
 div.bookmark-edit > div:nth-last-child(2) {
