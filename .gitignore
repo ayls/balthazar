@@ -3,6 +3,10 @@
 
 # Azure Functions localsettings file
 local.settings.json
+*.pubxml
+
+# Nuxt
+.nuxt
 
 # User-specific files
 *.suo
