@@ -18,8 +18,10 @@
             </span>
             <el-dropdown-menu slot="dropdown">
               <el-dropdown-item command="import">Import</el-dropdown-item>
-              <el-dropdown-item command="addFolder">New folder</el-dropdown-item>          
+              <el-dropdown-item divided command="addFolder">New folder</el-dropdown-item>                        
               <el-dropdown-item command="addUrl">New url</el-dropdown-item>                        
+              <el-dropdown-item divided command="expandAll">Expand all</el-dropdown-item>          
+              <el-dropdown-item command="collapseAll">Collapse all</el-dropdown-item>                                      
             </el-dropdown-menu>
           </el-dropdown>
         </div>
@@ -38,6 +40,7 @@
           @node-drop="handleDrop"
           draggable
           :allow-drop="allowDrop"
+          :allow-drag="allowDrag"
           ref="tree">
           <div class="bookmark-tree-node-container" slot-scope="{ node, data }">
             <bookmark :node="node" :bookmark="data"></bookmark>
@@ -62,15 +65,28 @@ export default Vue.extend({
   data() {
     return {
       filterText: '',
-      bookmarks: this.$store.state.bookmarks
+      bookmarks: this.$store.state.bookmarks,
+      isExpandingOrCollapsing: false
     };
   },
   watch: {
     filterText(val: string) {
-      (this.$refs.tree as any).filter(val);
+      if (!this.isExpandingOrCollapsing) {
+        (this.$refs.tree as any).filter(val);
+      }
     }
   },  
+  mounted() {
+    this.showLoadingAndRun(() => this.$store.dispatch('load'))    
+  },
   methods: {
+    showLoadingAndRun(func: () => void) {
+      const loading = this.$loading({
+        lock: true,
+      });
+      func();
+      loading.close();
+    },
     handleCommand(command: string) {
       switch (command) {
         case 'import':
@@ -81,17 +97,50 @@ export default Vue.extend({
         case 'addUrl':
           this.append(false);
           break;
+        case 'expandAll':
+          this.expandAll();
+          break;
+        case 'collapseAll':
+          this.collapseAll();
+          break;          
       }
     },
     append(isFolder: boolean) {
       this.$store.commit('append', { bookmark: null, isFolder });
     },    
+    expandAll() {
+      this.isExpandingOrCollapsing = true;
+      try {
+        this.filterText = '';
+        this.$store.commit('cancelAllEditing');        
+        (this.$refs.tree as any).expand();
+      }
+      finally {
+        this.isExpandingOrCollapsing = false;
+      }
+    },    
+    collapseAll() {
+      this.isExpandingOrCollapsing = true;
+      try {
+        this.filterText = '';
+        this.$store.commit('cancelAllEditing');
+        (this.$refs.tree as any).collapse();
+      }
+      finally {
+        this.isExpandingOrCollapsing = false;
+      }
+    },            
     handleDrop(draggingNode: any, dropNode: any, type: string, ev: DragEvent) {
-      this.$store.commit('setParent', { bookmark: draggingNode.data, referenceBookmark: dropNode.data, type });
+      this.showLoadingAndRun(
+        () => this.$store.dispatch('setParent', { bookmark: draggingNode.data, referenceBookmark: dropNode.data, type })
+      );
     },
     allowDrop(draggingNode: any, dropNode: any, type: string) {
-      return dropNode.data.record.isFolder;
+      return dropNode.data.record.isFolder || type != 'inner';
     },
+    allowDrag(draggingNode: any) {
+      return !draggingNode.data.record.isEditing;
+    },    
     filterNode(value: string, data: BookmarkStateItem) {
       if (!value) return true;
       const lowerCasedValue = value.toLowerCase();

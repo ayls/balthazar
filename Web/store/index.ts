@@ -1,5 +1,7 @@
 import _ from 'lodash'
 
+const apiBase = process.env.apiBase; // 'http://localhost:7071/api';
+
 export interface BookmarkState {
   bookmarks: BookmarkStateItem[]
 }
@@ -24,104 +26,76 @@ export interface BookmarkRecord {
 }
 
 export const state = (): BookmarkState => ({
-  bookmarks: [
-    {
-      id: "51613143",
-      record: {
-        parentRowKey: "",
-        order: 0,
-        name: "Storage",
-        url: "",
-        isFolder: true,
-        partitionKey: "0fae070c-9f1d-40e3-bf4d-f3a342588960",
-        rowKey: "51613143",
-        timestamp: "2020-04-18T15:41:34.5700546+02:00",
-        eTag: "W/\"datetime'2020-04-18T13%3A41%3A34.5700546Z'\""
-      },
-      isEditing: false,
-      children: [{
-        id: "10134182",
-        record: {
-          parentRowKey: "51613143",
-          order: 0,
-          name: "Managing the Azure Storage Lifecycle | Microsoft Docs",
-          url: "https://docs.microsoft.com/en-us/azure/storage/blobs/storage-lifecycle-management-concepts",
-          isFolder: false,
-          partitionKey: "0fae070c-9f1d-40e3-bf4d-f3a342588960",
-          rowKey: "10134182",
-          timestamp: "2020-04-18T15:41:34.5880669+02:00",
-          eTag: "W/\"datetime'2020-04-18T13%3A41%3A34.5880669Z'\""
-        },
-        isEditing: false,
-        children: []
-      }]
-    },
-    {
-      id: "61027891",
-      record: {
-        parentRowKey: "",
-        order: 0,
-        name: "Microsoft",
-        url: "",
-        isFolder: true,
-        partitionKey: "0fae070c-9f1d-40e3-bf4d-f3a342588960",
-        rowKey: "61027891",
-        timestamp: "2020-04-18T15:41:33.1480519+02:00",
-        eTag: "W/\"datetime'2020-04-18T13%3A41%3A33.1480519Z'\""
-      },
-      isEditing: false,
-      children: [{
-        id: "11171509",
-        record:   {
-          parentRowKey: "61027891",
-          order: 2,
-          name: "Azure Devops",
-          url: "",
-          isFolder: true,
-          partitionKey: "0fae070c-9f1d-40e3-bf4d-f3a342588960",
-          rowKey: "11171509",
-          timestamp: "2020-04-18T15:41:35.0794124+02:00",
-          eTag: "W/\"datetime'2020-04-18T13%3A41%3A35.0794124Z'\""
-        },
-        isEditing: false,
-        children: [{
-          id: "64006473",
-          record:     {
-            parentRowKey: "11171509",
-            order: 3,
-            name: "azure-pipelines-tasks/README.md at master · microsoft/azure-pipelines-tasks · GitHub",
-            url: "https://github.com/microsoft/azure-pipelines-tasks/blob/master/Tasks/AzureResourceGroupDeploymentV2/README.md",
-            isFolder: false,
-            partitionKey: "0fae070c-9f1d-40e3-bf4d-f3a342588960",
-            rowKey: "64006473",
-            timestamp: "2020-04-18T15:41:35.1564662+02:00",
-            eTag: "W/\"datetime'2020-04-18T13%3A41%3A35.1564662Z'\""
-          },
-          isEditing: false,
-          children: []
-        },
-        {
-          id: "1958654",
-          record:     {
-            parentRowKey: "11171509",
-            order: 4,
-            name: "Powershell ConvertFrom-Json Encoding Special Characters Issue - Stack Overflow",
-            url: "https://stackoverflow.com/questions/53033242/powershell-convertfrom-json-encoding-special-characters-issue",
-            isFolder: false,
-            partitionKey: "0fae070c-9f1d-40e3-bf4d-f3a342588960",
-            rowKey: "1958654",
-            timestamp: "2020-04-18T15:41:35.1744788+02:00",
-            eTag: "W/\"datetime'2020-04-18T13%3A41%3A35.1744788Z'\""
-          },
-          isEditing: false,
-          children: []
-        }]
-      }]
-    }
-  ]
+  bookmarks: []
 })
 
+export const actions = {
+  async load ({ commit }: { commit: any }) {
+    const bookmarkRecords = await (this as any).$axios.$get(`${apiBase}/List`);
+    commit('load', { bookmarkRecords });
+  },
+  async endEdit ({ commit }: { commit: any }, { bookmark, confirmed }: { bookmark: BookmarkStateItem, confirmed: boolean }) {
+    if (confirmed && !bookmark.id) {
+      const bookmarkRecord = await (this as any).$axios.$post(
+        `${apiBase}/Add`, 
+        {
+          parentRowKey: bookmark.record.parentRowKey,
+          name: bookmark.record.name,
+          url: bookmark.record.url,
+          isFolder: bookmark.record.isFolder,
+          order: bookmark.record.order
+        }
+      );
+      commit('endAppend', { bookmark, bookmarkRecord });      
+    } 
+    else if (confirmed && bookmark.id) {
+      const bookmarkRecord = await (this as any).$axios.$put(
+        `${apiBase}/Update`, 
+        bookmark.record
+      );      
+      commit('endUpdate', { bookmark, bookmarkRecord });            
+    }
+    else {
+      commit('cancelEdit', { bookmark });            
+    }
+  },
+  async setParent ({ commit, state }: { commit: any, state: BookmarkState }, { bookmark, referenceBookmark, type }: { bookmark: BookmarkStateItem, referenceBookmark: BookmarkStateItem, type: string }) {
+    commit('setParent', { bookmark, referenceBookmark, type });
+    const updatedBookmark = findBookmark(state.bookmarks, bookmark);
+    const updatedBookmarkParent = findBookmarkParent({ children: state.bookmarks } as BookmarkStateItem, updatedBookmark!);
+    for(const item of updatedBookmarkParent!.children) {
+      const bookmarkRecord = await (this as any).$axios.$put(
+        `${apiBase}/Update`, 
+        item.record
+      );       
+      commit('endUpdate', { bookmark, bookmarkRecord });            
+    }
+  },
+  async remove ({ commit }: { commit: any }, { bookmark }: { bookmark: BookmarkStateItem }) {
+    const recursiveDelete = async (bookmark: BookmarkStateItem) => {
+      await (this as any).$axios.$delete(
+        `${apiBase}/Delete`,
+        {
+          data: bookmark.record
+        }
+      );    
+      for(const item of bookmark.children) {
+        await recursiveDelete(item);
+      }
+    }
+    await recursiveDelete(bookmark);
+    commit('remove', { bookmark });                
+  }
+}
+
 export const mutations = {
+  load(state: BookmarkState, { bookmarkRecords }: { bookmarkRecords: BookmarkRecord[] }) {
+    const bookmarks = parseApiResponse(bookmarkRecords, null);
+    state.bookmarks.splice(0, state.bookmarks.length);
+    for(const bookmark of bookmarks) {
+      state.bookmarks.push(bookmark);
+    }
+  },
   append(state: BookmarkState, { bookmark, isFolder }: { bookmark: BookmarkStateItem, isFolder: boolean }) {
     applyToAllBookmarks({ children: state.bookmarks } as BookmarkStateItem, (b: BookmarkStateItem) => {
       if (!b.id && b.isEditing) {
@@ -132,7 +106,7 @@ export const mutations = {
     });
     const parentRowKey = bookmark ? bookmark.id : '';
     const order = bookmark ? bookmark.children.length : state.bookmarks.length;   
-    const newChild = {
+    const bookmarkChild = {
       id: '',
       record: { 
         parentRowKey: parentRowKey,
@@ -149,9 +123,9 @@ export const mutations = {
       children: [] 
     } as BookmarkStateItem;
     if (bookmark) {
-      bookmark.children.push(newChild);
+      bookmark.children.push(bookmarkChild);
     } else {
-      state.bookmarks.push(newChild);
+      state.bookmarks.push(bookmarkChild);
     }
   },
   setParent(state: BookmarkState, { bookmark, referenceBookmark, type }: { bookmark: BookmarkStateItem, referenceBookmark: BookmarkStateItem, type: string }) {
@@ -159,7 +133,10 @@ export const mutations = {
     const bookmarkCopy = _.cloneDeep(bookmark);
     if (type === 'inner') {      
       bookmarkCopy.record.parentRowKey = referenceBookmark.record.rowKey;
-      referenceBookmark.children.push(bookmarkCopy);      
+      referenceBookmark.children.push(bookmarkCopy);
+      for(let i = 0; i < referenceBookmark.children.length; i++) {
+        referenceBookmark.children[i].record.order = i;
+      }
     } else {
       const root = { children: state.bookmarks } as BookmarkStateItem;
       const referenceBookmarkParent = findBookmarkParent(root, referenceBookmark);
@@ -177,6 +154,9 @@ export const mutations = {
       }
       bookmarkCopy.record.parentRowKey = referenceBookmarkParent != root ? referenceBookmarkParent!.record.rowKey : '';
       referenceBookmarkParent!.children.splice(insertIndex, 0, bookmarkCopy);
+      for(let i = 0; i < referenceBookmarkParent!.children.length; i++) {
+        referenceBookmarkParent!.children[i].record.order = i;
+      }      
     } 
   },  
   beginEdit(state: BookmarkState, { bookmark }: any) {
@@ -195,17 +175,67 @@ export const mutations = {
   updateUrl(state: BookmarkState, { bookmark, text }: { bookmark: BookmarkStateItem, text: string }) {
     bookmark.record.url = text;
   },    
-  endEdit(state: BookmarkState, { bookmark, confirmed }: { bookmark: BookmarkStateItem, confirmed: boolean }) {
-    if (!confirmed && !bookmark.id) {
+  endAppend(state: BookmarkState, { bookmark, bookmarkRecord }: { bookmark: BookmarkStateItem, bookmarkRecord: BookmarkRecord }) {
+    bookmark.id = bookmarkRecord.rowKey;
+    bookmark.record = bookmarkRecord;
+    bookmark.record.eTag = '*';
+    bookmark.isEditing = false;
+  },
+  endUpdate(state: BookmarkState, { bookmark, bookmarkRecord }: { bookmark: BookmarkStateItem, bookmarkRecord: BookmarkRecord }) {
+    bookmark.record = bookmarkRecord;
+    bookmark.record.eTag = '*';    
+    bookmark.isEditing = false;
+  },    
+  cancelEdit(state: BookmarkState, { bookmark }: { bookmark: BookmarkStateItem }) {
+    if (!bookmark.id) {
       removeBookmark(state.bookmarks, bookmark);
     } else {
       bookmark.isEditing = false;
     }
   },
+  cancelAllEditing(state: BookmarkState) {
+    applyToAllBookmarks({ children: state.bookmarks } as BookmarkStateItem, (b: BookmarkStateItem) => {
+      if (!b.id && b.isEditing) {
+        removeBookmark(state.bookmarks, b);
+      } else {
+        b.isEditing = false;
+      }
+    });    
+  },
   remove(state: BookmarkState, { bookmark }: { bookmark: BookmarkStateItem }) {
     const bookmarkParent = findBookmarkParent({ children: state.bookmarks } as BookmarkStateItem, bookmark);
     removeBookmark(bookmarkParent!.children, bookmark);    
   }
+}
+
+function parseApiResponse(bookmarkRecords: BookmarkRecord[], parentItem: BookmarkStateItem | null):  BookmarkStateItem[] {
+  const result = []
+  const parentRowKey = parentItem != null ? parentItem.record.rowKey : '';
+  const childRecords =  bookmarkRecords.filter((r: BookmarkRecord) => r.parentRowKey == parentRowKey);
+  for(const record of childRecords) {
+    const bookmark = {
+      id: record.rowKey,
+      record: { 
+        parentRowKey: parentRowKey,
+        order: record.order,
+        name: record.name, 
+        url: record.url,
+        isFolder: record.isFolder,
+        partitionKey: record.partitionKey,
+        rowKey: record.rowKey,
+        timestamp: record.timestamp,
+        eTag: '*'
+      },
+      isEditing: false, 
+      children: [] 
+    } as BookmarkStateItem;    
+    const bookmarkChildren = parseApiResponse(bookmarkRecords, bookmark);
+    bookmark.children = bookmarkChildren;
+    result.push(bookmark);
+  }
+
+  result.sort((a: BookmarkStateItem, b: BookmarkStateItem) => a.record.order - b.record.order);
+  return result;
 }
 
 function applyToAllBookmarks(bookmark: BookmarkStateItem, action: (b: BookmarkStateItem) => void): void {
@@ -216,7 +246,7 @@ function applyToAllBookmarks(bookmark: BookmarkStateItem, action: (b: BookmarkSt
 }
 
 function findBookmark(bookmarks: BookmarkStateItem[], bookmark: BookmarkStateItem): BookmarkStateItem | null {
-  const foundBookmark = bookmarks.find((b: BookmarkStateItem) => bookmark === b);
+  const foundBookmark = bookmarks.find((b: BookmarkStateItem) => bookmark.id === b.id);
   if (foundBookmark) {
     return foundBookmark;
   } else {
@@ -232,7 +262,7 @@ function findBookmark(bookmarks: BookmarkStateItem[], bookmark: BookmarkStateIte
 }
 
 function findBookmarkParent(parentBookmark: BookmarkStateItem, bookmark: BookmarkStateItem): BookmarkStateItem | null {
-  const foundBookmark = parentBookmark.children.find((b: BookmarkStateItem) => bookmark === b);
+  const foundBookmark = parentBookmark.children.find((b: BookmarkStateItem) => bookmark.id === b.id);
   if (foundBookmark) {
     return parentBookmark;    
   } else {    
@@ -248,12 +278,12 @@ function findBookmarkParent(parentBookmark: BookmarkStateItem, bookmark: Bookmar
 }
 
 function removeBookmark(bookmarks: BookmarkStateItem[], bookmark: BookmarkStateItem): void {
-  const bookmarkToRemove = bookmarks.find((b: BookmarkStateItem) => bookmark === b);
+  const bookmarkToRemove = bookmarks.find((b: BookmarkStateItem) => bookmark.id === b.id);
   if (bookmarkToRemove) {
     bookmarks.splice(bookmarks.indexOf(bookmarkToRemove), 1);
   } else {
-    bookmarks.forEach((item: BookmarkStateItem) => {
+    for(const item of bookmarks) {    
       removeBookmark(item.children, bookmark);
-    });
+    }
   }
 }

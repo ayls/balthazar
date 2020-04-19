@@ -32,12 +32,48 @@
 
 <script>
 import Vue from 'vue'
-import TreeStore from 'element-ui/packages/tree/src/model/tree-store';
 import { getNodeKey, findNearestComponent } from 'element-ui/packages/tree/src/model/util';
+import TreeStore from 'element-ui/packages/tree/src/model/tree-store';
 import ElTreeNode from 'element-ui/packages/tree/src/tree-node.vue';
-import {t} from 'element-ui/src/locale';
+import { t, use } from 'element-ui/src/locale';
+import locale from 'element-ui/src/locale/lang/en'
 import emitter from 'element-ui/src/mixins/emitter';
 import { addClass, removeClass } from 'element-ui/src/utils/dom';
+
+class CustomTreeStore extends TreeStore {
+  collapse() {
+    const lazy = this.lazy;
+    const traverse = function(node) {
+      const childNodes = node.root ? node.root.childNodes : node.childNodes;
+
+      childNodes.forEach((child) => {
+        child.visible = true;
+        traverse(child);
+      });
+
+      if (node.visible && !node.isLeaf && !lazy) node.collapse();
+    };
+
+    traverse(this);   
+  }
+
+  expand() {
+    const lazy = this.lazy;
+    const traverse = function(node) {
+      const childNodes = node.root ? node.root.childNodes : node.childNodes;
+
+      childNodes.forEach((child) => {
+        child.visible = true;
+        traverse(child);
+      });
+
+      if (node.visible && !node.isLeaf && !lazy) node.expand();
+    };
+
+    traverse(this);    
+  }
+};
+
 export default Vue.component('customElTree', {
   mixins: [emitter],
   components: {
@@ -65,6 +101,7 @@ export default Vue.component('customElTree', {
     emptyText: {
       type: String,
       default() {
+        use(locale);
         return t('el.tree.emptyText');
       }
     },
@@ -163,6 +200,12 @@ export default Vue.component('customElTree', {
     }
   },
   methods: {
+    collapse() {
+      this.store.collapse();
+    },
+    expand() {
+      this.store.expand();
+    },        
     filter(value) {
       if (!this.filterNodeMethod) throw new Error('[Tree] filterNodeMethod is required when filter');
       this.store.filter(value);
@@ -284,7 +327,7 @@ export default Vue.component('customElTree', {
   },
   created() {
     this.isTree = true;
-    this.store = new TreeStore({
+    this.store = new CustomTreeStore({
       key: this.nodeKey,
       data: this.data,
       lazy: this.lazy,

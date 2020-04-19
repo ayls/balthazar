@@ -1,5 +1,8 @@
 export default {
   mode: 'spa',
+  env: {
+    apiBase: 'http://localhost:7071/api'
+  },
   /*
    ** Headers of the page
    */
