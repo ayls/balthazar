@@ -81,13 +81,13 @@ export default Vue.component('bookmark', {
     }
   },
   methods: {
-    showLoadingAndRun(func: () => void) {
-      const loading = this.$loading({
+    showLoadingAndRun: async (loader: any, func: () => Promise<void>) => {
+      const loading = loader({
         lock: true,
       });
-      func();
+      await func();
       loading.close();
-    },    
+    },
     handleCommand(command: string) {
       switch (command) {
         case 'addFolder':
@@ -115,11 +115,11 @@ export default Vue.component('bookmark', {
     },
     endEdit(confirmed: boolean) {
       const bookmark = this.bookmark;
-      this.showLoadingAndRun(() => this.$store.dispatch('endEdit', { bookmark, confirmed }));
+      this.showLoadingAndRun(this.$loading, async () => await this.$store.dispatch('endEdit', { bookmark, confirmed }));
     },
     remove() {
       const bookmark = this.bookmark;
-      this.$store.dispatch('remove', { bookmark });
+      this.showLoadingAndRun(this.$loading, async () => this.$store.dispatch('remove', { bookmark }));
     }    
   }
 });

@@ -77,14 +77,14 @@ export default Vue.extend({
     }
   },  
   mounted() {
-    this.showLoadingAndRun(() => this.$store.dispatch('load'))    
+    this.showLoadingAndRun(this.$loading, async () => await this.$store.dispatch('load'))    
   },
   methods: {
-    showLoadingAndRun(func: () => void) {
-      const loading = this.$loading({
+    showLoadingAndRun: async (loader: any, func: () => Promise<void>) => {
+      const loading = loader({
         lock: true,
       });
-      func();
+      await func();
       loading.close();
     },
     handleCommand(command: string) {
@@ -132,7 +132,8 @@ export default Vue.extend({
     },            
     handleDrop(draggingNode: any, dropNode: any, type: string, ev: DragEvent) {
       this.showLoadingAndRun(
-        () => this.$store.dispatch('setParent', { bookmark: draggingNode.data, referenceBookmark: dropNode.data, type })
+        this.$loading,
+        async() => await this.$store.dispatch('setParent', { bookmark: draggingNode.data, referenceBookmark: dropNode.data, type })
       );
     },
     allowDrop(draggingNode: any, dropNode: any, type: string) {
