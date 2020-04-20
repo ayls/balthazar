@@ -1,0 +1,12 @@
+{
+  "IsEncrypted": false,
+  "Values": {
+    "AzureWebJobsStorage": "UseDevelopmentStorage=true",
+    "FUNCTIONS_WORKER_RUNTIME": "dotnet",
+    "BookmarkCollectionConnectionString": "<connection string to azure table here>",
+    "BookmarkCollectionPartitionKey": "<partition key value here>"
+  },
+  "Host": {
+    "CORS": "*"
+  }
+}
