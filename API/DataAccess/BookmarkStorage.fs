@@ -1,4 +1,4 @@
-﻿namespace DataAccess
+﻿namespace API.DataAccess
 
 open Microsoft.WindowsAzure.Storage
 open Microsoft.WindowsAzure.Storage.Table

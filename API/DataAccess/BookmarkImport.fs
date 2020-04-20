@@ -1,16 +1,14 @@
-﻿namespace DataAccess
+﻿namespace API.DataAccess
 
-open System.IO
 open System.Linq
 open BookmarksManager
-open BookmarkStorage
 
 module BookmarkImport =
     let private readExport(content: string) =
         let reader = new NetscapeBookmarksReader()
         reader.Read(content)
 
-    let rec private importExport(table:BookmarkTable, bookmarkCollectionId: string, bookmarkItem:IBookmarkItem, parentBookmarkItem:IBookmarkFolder, order: int) =
+    let rec private importExport(table:BookmarkStorage.BookmarkTable, bookmarkCollectionId: string, bookmarkItem:IBookmarkItem, parentBookmarkItem:IBookmarkFolder, order: int) =
         let recordId = bookmarkItem.GetHashCode().ToString()
         let parentRecordId = 
             match parentBookmarkItem with
@@ -21,7 +19,7 @@ module BookmarkImport =
         | :? IBookmarkLink as link -> table.insert(bookmarkCollectionId, recordId, parentRecordId, order, link.Title, link.Url, false) |> ignore
         | _ -> ()
         let mutable order = 0
-        let importExportCall(table:BookmarkTable, bookmarkCollectionId: string, item:IBookmarkItem, folder:IBookmarkFolder) =
+        let importExportCall(table:BookmarkStorage.BookmarkTable, bookmarkCollectionId: string, item:IBookmarkItem, folder:IBookmarkFolder) =
             importExport(table, bookmarkCollectionId, item, folder, order)
             order <- order + 1
         match bookmarkItem with
@@ -29,7 +27,7 @@ module BookmarkImport =
         | _ -> ()
 
     let import(content: string, connectionString: string, bookmarkCollectionId: string) = 
-        let table = new BookmarkTable(connectionString)
+        let table = new BookmarkStorage.BookmarkTable(connectionString)
         let bookmarkExport = readExport(content)
         let rootBookmarkFolder = bookmarkExport.First()
         importExport(table, bookmarkCollectionId, rootBookmarkFolder, null, 0)

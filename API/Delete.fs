@@ -1,6 +1,6 @@
 ﻿namespace API
 
-open DataAccess
+open API.DataAccess
 open Microsoft.Azure.WebJobs
 open Microsoft.Azure.WebJobs.Extensions.Http;
 open Microsoft.AspNetCore.Http;

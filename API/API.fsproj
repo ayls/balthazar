@@ -4,6 +4,8 @@
     <AzureFunctionsVersion>v3</AzureFunctionsVersion>
   </PropertyGroup>
   <ItemGroup>
+    <Compile Include="DataAccess\BookmarkStorage.fs" />
+    <Compile Include="DataAccess\BookmarkImport.fs" />
     <Compile Include="Config.fs" />
     <Compile Include="Import.fs" />
     <Compile Include="Delete.fs" />
@@ -12,10 +14,8 @@
     <Compile Include="List.fs" />
   </ItemGroup>
   <ItemGroup>
-    <PackageReference Include="Microsoft.NET.Sdk.Functions" Version="3.0.5" />
-  </ItemGroup>
-  <ItemGroup>
-    <ProjectReference Include="..\DataAccess\DataAccess.fsproj" />
+    <PackageReference Include="BookmarksManager" Version="2.0.0" />
+    <PackageReference Include="Microsoft.NET.Sdk.Functions" Version="3.0.6" />
   </ItemGroup>
   <ItemGroup>
     <None Update="host.json">
