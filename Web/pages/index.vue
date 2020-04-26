@@ -17,7 +17,15 @@
               <i class="el-icon-menu el-icon--right"></i>
             </span>
             <el-dropdown-menu slot="dropdown">
-              <el-dropdown-item command="import">Import</el-dropdown-item>
+              <el-upload
+                :action="importActionUrl"
+                :before-upload="showLoading"
+                :on-success="handleImportCompleted"
+                :on-error="stopLoading"
+                class="import-dropdown-button"
+                ref="uploadFile">
+                <el-dropdown-item>Import</el-dropdown-item>
+              </el-upload>
               <el-dropdown-item divided command="addFolder">New folder</el-dropdown-item>                        
               <el-dropdown-item command="addUrl">New url</el-dropdown-item>                        
               <el-dropdown-item divided command="expandAll">Expand all</el-dropdown-item>          
@@ -69,6 +77,13 @@ export default Vue.extend({
       isExpandingOrCollapsing: false
     };
   },
+  computed: {
+    importActionUrl: {
+      get() {
+        return `${process.env.apiBase}/Import`;
+      }
+    }
+  },
   watch: {
     filterText(val: string) {
       if (!this.isExpandingOrCollapsing) {
@@ -82,15 +97,28 @@ export default Vue.extend({
   methods: {
     showLoadingAndRun: async (loader: any, func: () => Promise<void>) => {
       const loading = loader({
+        fullscreen: true,        
         lock: true,
       });
       await func();
       loading.close();
     },
+    showLoading() {
+      const loading = this.$loading({
+        fullscreen: true,
+        lock: true,
+      });
+    }, 
+    stopLoading() {
+      const loading = this.$loading({
+        fullscreen: true,        
+        lock: true,
+      });
+      loading.close();
+    },    
     handleCommand(command: string) {
+      console.log(command);
       switch (command) {
-        case 'import':
-          break;        
         case 'addFolder':
           this.append(true);
           break;
@@ -104,6 +132,11 @@ export default Vue.extend({
           this.collapseAll();
           break;          
       }
+    },
+    handleImportCompleted() {
+      this.showLoadingAndRun(this.$loading, async() => {
+        await this.$store.dispatch('load');
+      });
     },
     append(isFolder: boolean) {
       this.$store.commit('append', { bookmark: null, isFolder });
@@ -189,6 +222,15 @@ export default Vue.extend({
   color: #526488;
   word-spacing: 5px;
   padding-bottom: 15px;
+}
+
+.import-dropdown-button,
+.import-dropdown-button > div {
+  width: 100%;
+}
+
+.import-dropdown-button > div > li {
+  text-align: left;
 }
 
 .bookmark-filter {

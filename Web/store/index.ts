@@ -1,6 +1,6 @@
 import _ from 'lodash'
 
-const apiBase = process.env.apiBase; // 'http://localhost:7071/api';
+const apiBase = process.env.apiBase;
 
 export interface BookmarkState {
   bookmarks: BookmarkStateItem[]

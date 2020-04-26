@@ -83,6 +83,7 @@ export default Vue.component('bookmark', {
   methods: {
     showLoadingAndRun: async (loader: any, func: () => Promise<void>) => {
       const loading = loader({
+        fullscreen: true,
         lock: true,
       });
       await func();
