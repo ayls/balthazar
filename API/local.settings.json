@@ -3,8 +3,8 @@
   "Values": {
     "AzureWebJobsStorage": "UseDevelopmentStorage=true",
     "FUNCTIONS_WORKER_RUNTIME": "dotnet",
-    "BookmarkCollectionConnectionString": "<connection string to azure table here>",
-    "BookmarkCollectionPartitionKey": "<partition key value here>"
+    "BookmarkCollectionConnectionString": "DefaultEndpointsProtocol=https;AccountName=balthazatstorage;AccountKey=Kmo2Xdmk6/3C0jOJLOzBMVSzmlhU8mZUq9vjRBDof5cbS5yUgqFFs8kIy/U9xM9EDm5YY7TkjP8tyf+/IepgRg==;EndpointSuffix=core.windows.net",
+    "BookmarkCollectionPartitionKey": "0fae070c-9f1d-40e3-bf4d-f3a342588960"
   },
   "Host": {
     "CORS": "*"
