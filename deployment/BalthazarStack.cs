@@ -31,24 +31,6 @@ class BalthazarStack : Pulumi.Stack
             EnableHttpsTrafficOnly = true
         });
 
-        // Upload web files
-        string currentDirectory = Directory.GetCurrentDirectory();
-        var rootDirectory = Directory.GetParent(currentDirectory).FullName;
-        var webDistDirectory = Path.Combine(rootDirectory, "Web", "dist");
-        var files = EnumerateFiles(webDistDirectory);
-        foreach (var file in files)
-        {
-            var uploadedFile = new Blob(file.name, new BlobArgs
-            {
-                Name = file.name,
-                StorageAccountName = storageAccount.Name,
-                StorageContainerName = "$web",
-                Type = "Block",
-                Source = new FileAsset(file.info.FullName),
-                ContentType = MimeTypesMap.GetMimeType(file.info.Extension)
-            });
-        }
-
         // Create consumption plan
         var appServicePlan = new Plan("balthazarappsvc", new PlanArgs
         {
@@ -88,7 +70,7 @@ class BalthazarStack : Pulumi.Stack
             {
                 Cors = new FunctionAppSiteConfigCorsArgs()
                 {
-                    AllowedOrigins = new[] { storageAccount.PrimaryWebEndpoint }
+                    AllowedOrigins = new[] { storageAccount.PrimaryWebEndpoint.Apply(s => s.TrimEnd('/')) }
                 }
             },
             AppSettings =
@@ -103,6 +85,34 @@ class BalthazarStack : Pulumi.Stack
             Version = "~3"
         });
 
+        // Upload web files
+        string currentDirectory = Directory.GetCurrentDirectory();
+        var rootDirectory = Directory.GetParent(currentDirectory).FullName;
+        var webDistDirectory = Path.Combine(rootDirectory, "Web", "dist");
+        var files = EnumerateWebFiles(webDistDirectory);
+        foreach (var file in files)
+        {
+            var uploadedFile = new Blob(file.name, new BlobArgs
+            {
+                Name = file.name,
+                StorageAccountName = storageAccount.Name,
+                StorageContainerName = "$web",
+                Type = "Block",
+                Source = new FileAsset(file.info.FullName),
+                ContentType = MimeTypesMap.GetMimeType(file.info.Extension)
+            });
+        }
+        // create the web config
+        var configFile = new Blob("config.js", new BlobArgs
+        {
+            Name = "config.js",
+            StorageAccountName = storageAccount.Name,
+            StorageContainerName = "$web",
+            Type = "Block",
+            SourceContent = Output.Format($"window.config = {{ apiBase: \"https://{app.DefaultHostname}/api\" }}"),
+            ContentType = "text/javascript"
+        });
+
         // Export the app's web address
         this.WebEndpoint = storageAccount.PrimaryWebEndpoint;
     }
@@ -110,14 +120,15 @@ class BalthazarStack : Pulumi.Stack
     [Output]
     public Output<string> WebEndpoint { get; set; }
 
-    private static IEnumerable<(FileInfo info, string name)> EnumerateFiles(string sourceFolder)
+    private static IEnumerable<(FileInfo info, string name)> EnumerateWebFiles(string sourceFolder)
     {
+        var ignoredFiles = new[] { ".nojekyll", "config.js" };
         var sourceFolderLength = sourceFolder.Length + 1;
         return Directory.EnumerateFiles(sourceFolder, "*.*", SearchOption.AllDirectories)
             .Select(path => (
                 info: new FileInfo(path),
                 name: path.Remove(0, sourceFolderLength).Replace(Path.PathSeparator, '/')            
             ))
-            .Where(file => file.info.Length > 0); // https://github.com/pulumi/pulumi-azure/issues/544
+            .Where(file => !ignoredFiles.Contains(file.name));
     }
 }

@@ -1,8 +1,9 @@
 import _ from 'lodash'
 
-const apiBase = process.env.apiBase;
+const apiBase = (window as any).config?.apiBase || process.env.apiBase;
 
 export interface BookmarkState {
+  apiBase: string,
   bookmarks: BookmarkStateItem[]
 }
 
@@ -26,6 +27,7 @@ export interface BookmarkRecord {
 }
 
 export const state = (): BookmarkState => ({
+  apiBase: apiBase,
   bookmarks: []
 })
 

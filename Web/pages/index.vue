@@ -74,15 +74,9 @@ export default Vue.extend({
     return {
       filterText: '',
       bookmarks: this.$store.state.bookmarks,
+      importActionUrl: `${this.$store.state.apiBase}/Import`,
       isExpandingOrCollapsing: false
     };
-  },
-  computed: {
-    importActionUrl: {
-      get() {
-        return `${process.env.apiBase}/Import`;
-      }
-    }
   },
   watch: {
     filterText(val: string) {
