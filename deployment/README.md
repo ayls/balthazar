@@ -1,6 +1,4 @@
-# deployment
-
-> Bookmark manager deployment
+# balthazar
 
 ## Pulumi Installation
 

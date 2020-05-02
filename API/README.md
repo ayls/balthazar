@@ -1,7 +1,5 @@
 # balthazar
 
-> Bookmark manager API
-
 ## Build Setup
 
 1. Create an Azure Storage account

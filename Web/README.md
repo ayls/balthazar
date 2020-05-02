@@ -1,7 +1,5 @@
 # balthazar
 
-> Bookmark manager
-
 ## Build Setup
 
 Install dependencies:
