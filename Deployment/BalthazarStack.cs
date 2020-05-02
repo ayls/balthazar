@@ -51,7 +51,7 @@ class BalthazarStack : Pulumi.Stack
         });
 
         // Create function app deployment blob
-        var blob = new Blob("zip", new BlobArgs
+        var blob = new Blob("functionAppZip", new BlobArgs
         {
             StorageAccountName = storageAccount.Name,
             StorageContainerName = container.Name,
