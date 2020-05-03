@@ -46,6 +46,25 @@ stages:
       runOnce:
         deploy:    
           steps:
+          - task: DotNetCoreCLI@2
+            displayName: '[API] dotnet publish'
+            inputs:
+              command: 'publish'
+              publishWebProjects: false
+              projects: 'API/API.fsproj'
+              zipAfterPublish: false
+              modifyOutputPath: false
+          - task: Npm@1
+            displayName: '[Web] npm install'
+            inputs:
+              command: 'install'
+              workingDir: 'Web'
+          - task: Npm@1
+            displayName: '[Web] npm run build'
+            inputs:
+              command: 'custom'
+              workingDir: 'Web'
+              customCommand: 'run build'
           - task: Pulumi@1
             inputs:
               azureSubscription: 'Azure'
