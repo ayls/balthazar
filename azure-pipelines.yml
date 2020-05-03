@@ -30,16 +30,19 @@ stages:
         workingDir: 'Web'
         customCommand: 'run build'
     - task: CopyFiles@2
+      displayName: '[Artefact] copy API output'    
       inputs:
         SourceFolder: 'API/bin/Debug/netcoreapp3.1/publish'
         Contents: '**'
         TargetFolder: '$(Build.ArtifactStagingDirectory)/API/bin/Debug/netcoreapp3.1/publish'        
     - task: CopyFiles@2
+      displayName: '[Artefact] copy Web output'        
       inputs:
         SourceFolder: 'Web/dist'
         Contents: '**'
         TargetFolder: '$(Build.ArtifactStagingDirectory)/Web/dist'
     - task: CopyFiles@2
+      displayName: '[Artefact] copy Deployment output'        
       inputs:
         SourceFolder: 'Deployment'
         Contents: '**'
@@ -70,7 +73,7 @@ stages:
             inputs:
               azureSubscription: 'Azure'
               command: up
-              cwd: "$(Build.ArtifactStagingDirectory)/Deployment"
+              cwd: "Deployment"
               args: "--yes"
               stack: "fajrvehr/balthazar/test"
             env:
