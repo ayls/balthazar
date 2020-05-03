@@ -39,19 +39,22 @@ stages:
         PULUMI_ACCESS_TOKEN: $(PULUMI_ACCESS_TOKEN)
 - stage: deploy
   jobs:
-  - job: deploy  
+  - deployment: deploy  
     displayName: 'Deploy'
     environment: 'BalthazarTest'    
-    steps:
-    - task: Pulumi@1
-      inputs:
-        azureSubscription: 'Azure'
-        command: up
-        cwd: "Deployment"
-        args: "--yes"
-        stack: "fajrvehr/balthazar/test"
-      env:
-        PULUMI_ACCESS_TOKEN: $(PULUMI_ACCESS_TOKEN)              
+    strategy:
+      runOnce:
+        deploy:    
+          steps:
+          - task: Pulumi@1
+            inputs:
+              azureSubscription: 'Azure'
+              command: up
+              cwd: "Deployment"
+              args: "--yes"
+              stack: "fajrvehr/balthazar/test"
+            env:
+              PULUMI_ACCESS_TOKEN: $(PULUMI_ACCESS_TOKEN)              
 
 
 
