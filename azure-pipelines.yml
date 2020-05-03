@@ -10,10 +10,44 @@ pool:
   vmImage: 'ubuntu-latest'
 
 steps:
+- task: UseDotNet@2
+  inputs:
+    packageType: 'sdk'
+    version: '3.1.x'
+  displayName: use .NET Core 3.1.x
+- task: DotNetCoreCLI@2
+  inputs:
+    command: 'publish'
+    publishWebProjects: false
+    projects: 'API/API.fsproj'
+    zipAfterPublish: false
+    modifyOutputPath: false
 - script: echo Hello, world!
   displayName: 'Run a one-line script'
-
-- script: |
-    echo Add other tasks to build, test, and deploy your project.
-    echo See https://aka.ms/yaml
-  displayName: 'Run a multi-line script'
+- task: Npm@1
+  inputs:
+    command: 'install'
+    workingDir: 'Web'
+- task: Npm@1
+  inputs:
+    command: 'custom'
+    workingDir: 'Web'
+    customCommand: 'run build'
+- task: Pulumi@1
+  inputs:
+    azureSubscription: 'Azure'
+    command: 'preview'
+    cwd: "Deployment"
+    stack: "fajrvehr/balthazar/dev"
+  env:
+    PULUMI_ACCESS_TOKEN: $(PULUMI_ACCESS_TOKEN)
+- task: Pulumi@1
+  # condition: succeeded()
+  inputs:
+    azureSubscription: 'Azure'
+    command: up
+    cwd: "Deployment"
+    args: "--yes"
+    stack: "fajrvehr/balthazar/dev"
+  env:
+    PULUMI_ACCESS_TOKEN: $(PULUMI_ACCESS_TOKEN)
