@@ -72,7 +72,7 @@ stages:
         deploy:    
           steps:
           - script: |
-              ls
+              pwd
             displayName: 'ng lint and test'          
           - task: Pulumi@1
             displayName: '[Pulumi] up'
