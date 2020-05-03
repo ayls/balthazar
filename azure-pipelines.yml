@@ -71,17 +71,12 @@ stages:
       runOnce:
         deploy:    
           steps:
-          - script: |
-              pwd
-              echo $(Agent.WorkFolder)
-              echo $(Agent.BuildDirectory)
-            displayName: 'ng lint and test'          
           - task: Pulumi@1
             displayName: '[Pulumi] up'
             inputs:
               azureSubscription: 'Azure'
               command: up
-              cwd: "$(Agent.BuildDirectory)/Deployment"
+              cwd: "$(Agent.BuildDirectory)/drop/Deployment"
               args: "--yes"
               stack: "fajrvehr/balthazar/test"
             env:
