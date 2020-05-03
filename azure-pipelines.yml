@@ -73,6 +73,7 @@ stages:
           steps:
           - script: |
               pwd
+              echo $(Agent.WorkFolder)
             displayName: 'ng lint and test'          
           - task: Pulumi@1
             displayName: '[Pulumi] up'
