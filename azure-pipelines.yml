@@ -29,6 +29,21 @@ stages:
         command: 'custom'
         workingDir: 'Web'
         customCommand: 'run build'
+    - task: CopyFiles@2
+      inputs:
+        SourceFolder: 'API/bin/Debug/netcoreapp3.1/publish'
+        Contents: '**'
+        TargetFolder: '$(Build.ArtifactStagingDirectory)/API/bin/Debug/netcoreapp3.1/publish'        
+    - task: CopyFiles@2
+      inputs:
+        SourceFolder: 'Web/dist'
+        Contents: '**'
+        TargetFolder: '$(Build.ArtifactStagingDirectory)/Web/dist'
+    - task: PublishBuildArtifacts@1
+      inputs:
+        PathtoPublish: '$(Build.ArtifactStagingDirectory)'
+        ArtifactName: 'drop'
+        publishLocation: 'Container'        
     - task: Pulumi@1
       inputs:
         azureSubscription: 'Azure'
@@ -36,7 +51,7 @@ stages:
         cwd: "Deployment"
         stack: "fajrvehr/balthazar/dev"
       env:
-        PULUMI_ACCESS_TOKEN: $(PULUMI_ACCESS_TOKEN)
+        PULUMI_ACCESS_TOKEN: $(PULUMI_ACCESS_TOKEN)        
 - stage: deploy
   jobs:
   - deployment: deploy  
