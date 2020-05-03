@@ -48,11 +48,13 @@ stages:
         Contents: '**'
         TargetFolder: '$(Build.ArtifactStagingDirectory)/Deployment'        
     - task: PublishBuildArtifacts@1
+      displayName: '[Artefact] publish'            
       inputs:
         PathtoPublish: '$(Build.ArtifactStagingDirectory)'
         ArtifactName: 'drop'
         publishLocation: 'Container'        
     - task: Pulumi@1
+      displayName: '[Pulumi] preview'                
       inputs:
         azureSubscription: 'Azure'
         command: 'preview'
@@ -70,11 +72,12 @@ stages:
         deploy:    
           steps:
           - task: Pulumi@1
+            displayName: '[Pulumi] up'              
             inputs:
               azureSubscription: 'Azure'
               command: up
               cwd: "Deployment"
-              args: "--yes"
+              args: "--yes -v=9"
               stack: "fajrvehr/balthazar/test"
             env:
               PULUMI_ACCESS_TOKEN: $(PULUMI_ACCESS_TOKEN)              
