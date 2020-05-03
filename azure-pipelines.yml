@@ -17,8 +17,6 @@ steps:
     projects: 'API/API.fsproj'
     zipAfterPublish: false
     modifyOutputPath: false
-- script: echo Hello, world!
-  displayName: 'Run a one-line script'
 - task: Npm@1
   inputs:
     command: 'install'
