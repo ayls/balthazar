@@ -86,7 +86,7 @@ class BalthazarStack : Pulumi.Stack
         });
 
         // Upload web files
-        string currentDirectory = Directory.GetCurrentDirectory();
+        var currentDirectory = Directory.GetCurrentDirectory();
         var rootDirectory = Directory.GetParent(currentDirectory).FullName;
         var webDistDirectory = Path.Combine(rootDirectory, "Web", "dist");
         var files = EnumerateWebFiles(webDistDirectory);
@@ -127,7 +127,7 @@ class BalthazarStack : Pulumi.Stack
         return Directory.EnumerateFiles(sourceFolder, "*.*", SearchOption.AllDirectories)
             .Select(path => (
                 info: new FileInfo(path),
-                name: path.Remove(0, sourceFolderLength).Replace(Path.PathSeparator, '/')            
+                name: path.Remove(0, sourceFolderLength).Replace(Path.DirectorySeparatorChar, '/')            
             ))
             .Where(file => !ignoredFiles.Contains(file.name));
     }
