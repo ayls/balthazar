@@ -7,7 +7,6 @@ module Config =
         let connectionString = Environment.GetEnvironmentVariable("BookmarkCollectionConnectionString")
         connectionString
     let getPartitionKey =
-        let partitionKey = Environment.GetEnvironmentVariable("BookmarkCollectionPartitionKey")
-        partitionKey
+        "30a70b65-bb88-4de7-82ad-6067d9acaf82" // using a hardcoded partition key, since the table does not have good candidates for a partition key
 
 

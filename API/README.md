@@ -10,8 +10,7 @@
   "Values": {
     "AzureWebJobsStorage": "UseDevelopmentStorage=true",
     "FUNCTIONS_WORKER_RUNTIME": "dotnet",
-    "BookmarkCollectionConnectionString": "<connection string to Azure Storage account>",
-    "BookmarkCollectionPartitionKey": "<partition key value here, a guid or similar>"
+    "BookmarkCollectionConnectionString": "<connection string to Azure Storage account>"
   },
   "Host": {
     "CORS": "*"

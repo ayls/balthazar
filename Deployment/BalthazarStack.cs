@@ -15,7 +15,14 @@ class BalthazarStack : Pulumi.Stack
     public BalthazarStack()
     {
         // Create resource group
-        var resourceGroup = new ResourceGroup("balthazar");
+        var resourceGroup = new ResourceGroup("balthazar", new ResourceGroupArgs
+        {
+            Tags =
+            {
+                { "Project", Pulumi.Deployment.Instance.ProjectName },
+                { "Environment", Pulumi.Deployment.Instance.StackName },
+            }
+        });
 
         // Create storage account
         var storageAccount = new Account("balthazarstrg", new AccountArgs
@@ -60,7 +67,6 @@ class BalthazarStack : Pulumi.Stack
         });
 
         // deploy functions app
-        var bookmarksPartitionKey = Guid.NewGuid().ToString();
         var codeBlobUrl = SharedAccessSignature.SignedBlobReadUrl(blob, storageAccount);
         var app = new FunctionApp("balthazarapp", new FunctionAppArgs
         {
@@ -77,8 +83,7 @@ class BalthazarStack : Pulumi.Stack
             {
                 {"runtime", "dotnet"},
                 {"WEBSITE_RUN_FROM_PACKAGE", codeBlobUrl},
-                {"BookmarkCollectionConnectionString", storageAccount.PrimaryConnectionString},
-                {"BookmarkCollectionPartitionKey", bookmarksPartitionKey}
+                {"BookmarkCollectionConnectionString", storageAccount.PrimaryConnectionString}
             },
             StorageAccountName = storageAccount.Name,
             StorageAccountAccessKey = storageAccount.PrimaryAccessKey,
