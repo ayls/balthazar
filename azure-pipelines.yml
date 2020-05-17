@@ -59,7 +59,7 @@ stages:
         azureSubscription: 'Azure'
         command: 'preview'
         cwd: "Deployment"
-        stack: "fajrvehr/balthazar/dev"
+        stack: "fajrvehr/balthazar/test"
       env:
         PULUMI_ACCESS_TOKEN: $(PULUMI_ACCESS_TOKEN)
 - stage: deploy
