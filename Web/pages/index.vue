@@ -74,7 +74,7 @@ export default Vue.extend({
     return {
       filterText: '',
       bookmarks: this.$store.state.bookmarks,
-      importActionUrl: `${this.$store.state.apiBase}/Import`,
+      importActionUrl: 'Import',
       isExpandingOrCollapsing: false
     };
   },
@@ -85,8 +85,8 @@ export default Vue.extend({
       }
     }
   },  
-  mounted() {
-    this.showLoadingAndRun(this.$loading, async () => await this.$store.dispatch('load'))    
+  async mounted() {
+    await this.showLoadingAndRun(this.$loading, async () => await this.$store.dispatch('load'));
   },
   methods: {
     showLoadingAndRun: async (loader: any, func: () => Promise<void>) => {
@@ -127,8 +127,8 @@ export default Vue.extend({
           break;          
       }
     },
-    handleImportCompleted() {
-      this.showLoadingAndRun(this.$loading, async() => {
+    async handleImportCompleted() {
+      await this.showLoadingAndRun(this.$loading, async() => {
         await this.$store.dispatch('load');
       });
     },
@@ -157,8 +157,8 @@ export default Vue.extend({
         this.isExpandingOrCollapsing = false;
       }
     },            
-    handleDrop(draggingNode: any, dropNode: any, type: string, ev: DragEvent) {
-      this.showLoadingAndRun(
+    async handleDrop(draggingNode: any, dropNode: any, type: string, ev: DragEvent) {
+      await this.showLoadingAndRun(
         this.$loading,
         async() => await this.$store.dispatch('setParent', { bookmark: draggingNode.data, referenceBookmark: dropNode.data, type })
       );

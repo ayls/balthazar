@@ -31,10 +31,6 @@ export default {
    */
   css: ['element-ui/lib/theme-chalk/index.css'],
   /*
-   ** Plugins to load before mounting the App
-   */
-  plugins: ['@/plugins/element-ui'],
-  /*
    ** Nuxt.js dev-modules
    */
   buildModules: ['@nuxt/typescript-build'],
@@ -43,13 +39,52 @@ export default {
    */
   modules: [
     // Doc: https://axios.nuxtjs.org/usage
-    '@nuxtjs/axios'
+    '@nuxtjs/axios',
+    // Doc: https://axios.nuxtjs.org/usage 
+    '@nuxtjs/auth'    
   ],
   /*
    ** Axios module configuration
    ** See https://axios.nuxtjs.org/options
    */
   axios: {},
+  /*
+   ** Axios module configuration
+   ** See https://auth.nuxtjs.org/
+   */
+  auth: {
+    strategies: {
+      local: false,
+      oAuth2: {
+        _scheme: 'oauth2',
+        authorization_endpoint: 'http://localhost:5001/auth',
+        userinfo_endpoint: false,
+        scope: ['openid'],
+        access_type: undefined,
+        access_token_endpoint: undefined,
+        response_type: 'id_token',
+        token_type: 'Bearer',
+        redirect_uri: undefined,
+        client_id: 'balthazar',
+        token_key: 'id_token',
+        state: 'UNIQUE_AND_NON_GUESSABLE'
+      }      
+    }
+  },
+  /*
+   ** Router config
+   */  
+  router: {
+    middleware: ['auth']
+  },
+  /*
+   ** Plugins to load before mounting the App
+   */
+  plugins: [
+    '@/plugins/element-ui',
+    '@/plugins/axios.js', // configures Axios
+    '@/plugins/auth.js' // configures Auth
+  ],    
   /*
    ** Build configuration
    */
