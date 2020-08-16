@@ -11,7 +11,7 @@ export default Vue.extend({
   methods: {
     async userLogin() {
       try {
-        let response = await this.$auth.loginWith('oAuth2')
+        let response = await this.$auth.loginWith('oAuth2');
       } catch (err) {
         console.log(err)
       }
