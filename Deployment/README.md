@@ -19,6 +19,8 @@ az login
 dotnet publish ../API/API.fsproj
 npm run build --prefix ../Web
 pulumi config set azure:location <location>
+export AUTHORIZATION_ENDPOINT=<auth server endpoint>
+export AUTHORIZATION_CLIENT_ID=<auth client id>
 pulumi up
 ```
 

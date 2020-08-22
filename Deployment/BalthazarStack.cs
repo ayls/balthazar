@@ -114,7 +114,7 @@ class BalthazarStack : Pulumi.Stack
             StorageAccountName = storageAccount.Name,
             StorageContainerName = "$web",
             Type = "Block",
-            SourceContent = Output.Format($"window.config = {{ apiBase: \"https://{app.DefaultHostname}/api\" }}"),
+            SourceContent = Output.Format($"window.config = {{ apiBase: \"https://{app.DefaultHostname}/api\", authorization_endpoint: \"{System.Environment.GetEnvironmentVariable("AUTHORIZATION_ENDPOINT")}\", authorization_client_id: \"{System.Environment.GetEnvironmentVariable("AUTHORIZATION_CLIENT_ID")}\" }}"),
             ContentType = "text/javascript"
         });
 

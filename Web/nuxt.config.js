@@ -53,6 +53,7 @@ export default {
    ** See https://auth.nuxtjs.org/
    */
   auth: {
+    plugins: [ '~/plugins/auth.js' ],
     strategies: {
       local: false,
       oAuth2: {
@@ -65,7 +66,7 @@ export default {
         response_type: 'id_token',
         token_type: 'Bearer',
         redirect_uri: undefined,
-        client_id: 'balthazar',
+        client_id: 'balthazar-dev',
         token_key: 'id_token',
         state: 'UNIQUE_AND_NON_GUESSABLE'
       }      
@@ -83,7 +84,6 @@ export default {
   plugins: [
     '@/plugins/element-ui',
     '@/plugins/axios.js', // configures Axios
-    '@/plugins/auth.js' // configures Auth
   ],    
   /*
    ** Build configuration
