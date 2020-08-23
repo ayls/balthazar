@@ -98,7 +98,7 @@ class BalthazarStack : Stack
                 Cors = new FunctionAppSiteConfigCorsArgs()
                 {
                     //AllowedOrigins = new[] { storageAccount.PrimaryWebEndpoint.Apply(s => s.TrimEnd('/')) }
-                    AllowedOrigins = new[] { "*" } // TODO: set to apim url
+                    AllowedOrigins = new[] { "*" } // TODO: setup keys
                 }                
             },
             AppSettings =
