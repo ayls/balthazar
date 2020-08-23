@@ -54,6 +54,12 @@ export default {
    */
   auth: {
     plugins: [ '~/plugins/auth.js' ],
+    redirect: {
+      login: '/login',
+      logout: '/',
+      callback: '/callback',
+      home: '/'
+    },    
     strategies: {
       local: false,
       oAuth2: {

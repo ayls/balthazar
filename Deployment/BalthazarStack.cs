@@ -2,30 +2,51 @@ using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
+using System.Text;
 using HeyRed.Mime;
 using Pulumi;
+using Pulumi.Azure.ApiManagement;
+using Pulumi.Azure.ApiManagement.Inputs;
 using Pulumi.Azure.AppService;
 using Pulumi.Azure.AppService.Inputs;
 using Pulumi.Azure.Core;
 using Pulumi.Azure.Storage;
 using Pulumi.Azure.Storage.Inputs;
 
-class BalthazarStack : Pulumi.Stack
+class BalthazarStack : Stack
 {
+    [Output]
+    public Output<string> WebEndpoint { get; set; }
+
     public BalthazarStack()
     {
-        // Create resource group
-        var resourceGroup = new ResourceGroup("balthazar", new ResourceGroupArgs
+        var config = new Config();
+        var resourceGroup = CreateResourceGroup();
+        var storageAccount = CreateStorageAccount(resourceGroup);
+        var functionApp = DeployFunctionApp(resourceGroup, storageAccount);
+        var apiManagement = DeployApiManagement(resourceGroup, config);
+        var api = DeployApi(resourceGroup, apiManagement, functionApp, config);
+        DeployWebApp(storageAccount, apiManagement, api, config);
+
+        // Export the app's web address
+        this.WebEndpoint = storageAccount.PrimaryWebEndpoint;
+    }
+
+    private static ResourceGroup CreateResourceGroup()
+    {
+        return new ResourceGroup("balthazar", new ResourceGroupArgs
         {
             Tags =
             {
-                { "Project", Pulumi.Deployment.Instance.ProjectName },
-                { "Environment", Pulumi.Deployment.Instance.StackName },
+                { "Project", Deployment.Instance.ProjectName },
+                { "Environment", Deployment.Instance.StackName },
             }
         });
+    }
 
-        // Create storage account
-        var storageAccount = new Account("balthazarstrg", new AccountArgs
+    private static Account CreateStorageAccount(ResourceGroup resourceGroup)
+    {
+        return new Account("balthazarstrg", new AccountArgs
         {
             ResourceGroupName = resourceGroup.Name,
             AccountReplicationType = "LRS",
@@ -37,8 +58,10 @@ class BalthazarStack : Pulumi.Stack
             },
             EnableHttpsTrafficOnly = true
         });
+    }
 
-        // Create consumption plan
+    private static FunctionApp DeployFunctionApp(ResourceGroup resourceGroup, Account storageAccount)
+    {
         var appServicePlan = new Plan("balthazarappsvc", new PlanArgs
         {
             ResourceGroupName = resourceGroup.Name,
@@ -50,25 +73,23 @@ class BalthazarStack : Pulumi.Stack
             }
         });
 
-        // Create a container for function app deployment blobs
-        var container = new Container("zips", new ContainerArgs
+        var functionAppDeploymentContainer = new Container("zips", new ContainerArgs
         {
             StorageAccountName = storageAccount.Name,
             ContainerAccessType = "private"
         });
 
-        // Create function app deployment blob
-        var blob = new Blob("functionAppZip", new BlobArgs
+        var functionAppDeploymentBlob = new Blob("functionAppZip", new BlobArgs
         {
             StorageAccountName = storageAccount.Name,
-            StorageContainerName = container.Name,
+            StorageContainerName = functionAppDeploymentContainer.Name,
             Type = "Block",
             Source = new FileArchive("../API/bin/Debug/netcoreapp3.1/publish")
         });
 
-        // deploy functions app
-        var codeBlobUrl = SharedAccessSignature.SignedBlobReadUrl(blob, storageAccount);
-        var app = new FunctionApp("balthazarapp", new FunctionAppArgs
+        var functionAppDeploymentBlobUrl = SharedAccessSignature.SignedBlobReadUrl(functionAppDeploymentBlob, storageAccount);
+
+        return new FunctionApp("balthazarapp", new FunctionAppArgs
         {
             ResourceGroupName = resourceGroup.Name,
             AppServicePlanId = appServicePlan.Id,
@@ -77,27 +98,92 @@ class BalthazarStack : Pulumi.Stack
                 Cors = new FunctionAppSiteConfigCorsArgs()
                 {
                     AllowedOrigins = new[] { storageAccount.PrimaryWebEndpoint.Apply(s => s.TrimEnd('/')) }
-                }
+                }                
             },
             AppSettings =
             {
                 {"runtime", "dotnet"},
-                {"WEBSITE_RUN_FROM_PACKAGE", codeBlobUrl},
+                {"WEBSITE_RUN_FROM_PACKAGE", functionAppDeploymentBlobUrl},
                 {"BookmarkCollectionConnectionString", storageAccount.PrimaryConnectionString}
             },
             StorageAccountName = storageAccount.Name,
             StorageAccountAccessKey = storageAccount.PrimaryAccessKey,
             Version = "~3"
         });
+    }
 
-        // Upload web files
+    private static Service DeployApiManagement(ResourceGroup resourceGroup, Config config)
+    {
+        var apiManagement = new Service("balthazarapm", new ServiceArgs()
+        {
+            ResourceGroupName = resourceGroup.Name,
+            SkuName = "Developer_1",
+            PublisherEmail = config.Require("apmPublisherEmail"),
+            PublisherName = config.Require("apmPublisherName"),
+            Identity = new ServiceIdentityArgs()
+            {
+                Type = "SystemAssigned"
+            }
+        });
+
+        return apiManagement;
+    }
+
+    private static Api DeployApi(ResourceGroup resourceGroup, Service apiManagement, FunctionApp functionApp, Config config)
+    {
+        var api = new Api("balthazarappapi", new ApiArgs()
+        {
+            ResourceGroupName = resourceGroup.Name,
+            ApiManagementName = apiManagement.Name,
+            DisplayName = "Balthazar API",
+            Path = "balthazar",
+            Protocols = new InputList<string> { "https" },
+            //Import = new ApiImportArgs
+            //{
+            //    ContentFormat = "openapi",
+            //    ContentValue = Output.Format($"https://{functionApp.DefaultHostname}/api/Swagger"),
+            //},
+            Revision = "1"
+        });
+
+        new ApiPolicy("balthazarappapipolicy", new ApiPolicyArgs()
+        {
+            ResourceGroupName = resourceGroup.Name,
+            ApiManagementName = apiManagement.Name,
+            ApiName = api.Name,
+            XmlContent = GetPolicy(config)
+        });
+
+        return api;
+    }
+
+    private static string GetPolicy(Config config)
+    {
+        var policyBuilder = new StringBuilder();
+        policyBuilder.AppendLine("<policies>");
+        policyBuilder.AppendLine("  <inbound>");
+        policyBuilder.AppendLine("    <base />");
+        policyBuilder.AppendLine($"    <validate-jwt header-name=\"Authorization\" failed-validation-httpcode=\"401\" require-expiration-time=\"true\" require-scheme=\"Bearer\" require-signed-tokens=\"true\">");
+        policyBuilder.AppendLine($"      <openid-config url=\"{config.Require("authOpenIdConfigUrl")}\" />");
+        policyBuilder.AppendLine("      <audiences>");
+        policyBuilder.AppendLine($"        <audience>{config.Require("authAudience")}</audience>");
+        policyBuilder.AppendLine("      </audiences>");
+        policyBuilder.AppendLine("    </validate-jwt>");
+        policyBuilder.AppendLine("  </inbound>");
+        policyBuilder.AppendLine("</policies>");
+
+        return policyBuilder.ToString();
+    }
+
+    private static void DeployWebApp(Account storageAccount, Service apiManagement, Api api, Config config)
+    {
         var currentDirectory = Directory.GetCurrentDirectory();
         var rootDirectory = Directory.GetParent(currentDirectory).FullName;
         var webDistDirectory = Path.Combine(rootDirectory, "Web", "dist");
         var files = EnumerateWebFiles(webDistDirectory);
         foreach (var file in files)
         {
-            var uploadedFile = new Blob(file.name, new BlobArgs
+            new Blob(file.name, new BlobArgs
             {
                 Name = file.name,
                 StorageAccountName = storageAccount.Name,
@@ -107,23 +193,18 @@ class BalthazarStack : Pulumi.Stack
                 ContentType = MimeTypesMap.GetMimeType(file.info.Extension)
             });
         }
-        // create the web config
-        var configFile = new Blob("config.js", new BlobArgs
+
+        // create the config file
+        new Blob("config.js", new BlobArgs
         {
             Name = "config.js",
             StorageAccountName = storageAccount.Name,
             StorageContainerName = "$web",
             Type = "Block",
-            SourceContent = Output.Format($"window.config = {{ apiBase: \"https://{app.DefaultHostname}/api\", authorization_endpoint: \"{System.Environment.GetEnvironmentVariable("AUTHORIZATION_ENDPOINT")}\", authorization_client_id: \"{System.Environment.GetEnvironmentVariable("AUTHORIZATION_CLIENT_ID")}\" }}"),
+            SourceContent = Output.Format($"window.config = {{ apiBase: \"{apiManagement.GatewayUrl}/{api.Path}/api\", authorization_endpoint: \"{config.Require("authEndpoint")}\", authorization_client_id: \"{config.Require("authAudience")}\" }}"),
             ContentType = "text/javascript"
         });
-
-        // Export the app's web address
-        this.WebEndpoint = storageAccount.PrimaryWebEndpoint;
     }
-
-    [Output]
-    public Output<string> WebEndpoint { get; set; }
 
     private static IEnumerable<(FileInfo info, string name)> EnumerateWebFiles(string sourceFolder)
     {

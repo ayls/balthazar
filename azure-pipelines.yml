@@ -30,25 +30,25 @@ stages:
         workingDir: 'Web'
         customCommand: 'run build'
     - task: CopyFiles@2
-      displayName: '[Artefact] copy API output'
+      displayName: '[Artifact] copy API output'
       inputs:
         SourceFolder: 'API/bin/Debug/netcoreapp3.1/publish'
         Contents: '**'
         TargetFolder: '$(Build.ArtifactStagingDirectory)/API/bin/Debug/netcoreapp3.1/publish'
     - task: CopyFiles@2
-      displayName: '[Artefact] copy Web output'
+      displayName: '[Artifact] copy Web output'
       inputs:
         SourceFolder: 'Web/dist'
         Contents: '**'
         TargetFolder: '$(Build.ArtifactStagingDirectory)/Web/dist'
     - task: CopyFiles@2
-      displayName: '[Artefact] copy Deployment output'
+      displayName: '[Artifact] copy Deployment output'
       inputs:
         SourceFolder: 'Deployment'
         Contents: '**'
         TargetFolder: '$(Build.ArtifactStagingDirectory)/Deployment'
     - task: PublishBuildArtifacts@1
-      displayName: '[Artefact] publish'
+      displayName: '[Artifact] publish'
       inputs:
         PathtoPublish: '$(Build.ArtifactStagingDirectory)'
         ArtifactName: 'drop'
@@ -58,7 +58,7 @@ stages:
       inputs:
         azureSubscription: 'Azure'
         command: 'preview'
-        cwd: "Deployment"
+        cwd: "$(Build.ArtifactStagingDirectory)/Deployment"
         stack: "fajrvehr/balthazar/test"
       env:
         PULUMI_ACCESS_TOKEN: $(PULUMI_ACCESS_TOKEN)
