@@ -138,11 +138,11 @@ class BalthazarStack : Stack
             DisplayName = "Balthazar API",
             Path = "balthazar",
             Protocols = new InputList<string> { "https" },
-            //Import = new ApiImportArgs
-            //{
-            //    ContentFormat = "openapi",
-            //    ContentValue = Output.Format($"https://{functionApp.DefaultHostname}/api/Swagger"),
-            //},
+            Import = new ApiImportArgs
+            {
+                ContentFormat = "openapi-link",
+                ContentValue = Output.Format($"https://{functionApp.DefaultHostname}/api/Swagger"),
+            },
             Revision = "1"
         });
 
