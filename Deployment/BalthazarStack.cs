@@ -97,7 +97,8 @@ class BalthazarStack : Stack
             {
                 Cors = new FunctionAppSiteConfigCorsArgs()
                 {
-                    AllowedOrigins = new[] { storageAccount.PrimaryWebEndpoint.Apply(s => s.TrimEnd('/')) }
+                    //AllowedOrigins = new[] { storageAccount.PrimaryWebEndpoint.Apply(s => s.TrimEnd('/')) }
+                    AllowedOrigins = new[] { "*" }
                 }                
             },
             AppSettings =
@@ -138,6 +139,7 @@ class BalthazarStack : Stack
             DisplayName = "Balthazar API",
             Path = "balthazar",
             Protocols = new InputList<string> { "https" },
+            ServiceUrl = Output.Format($"https://{functionApp.DefaultHostname}"),
             Import = new ApiImportArgs
             {
                 ContentFormat = "openapi-link",
@@ -169,6 +171,20 @@ class BalthazarStack : Stack
         policyBuilder.AppendLine($"        <audience>{config.Require("authAudience")}</audience>");
         policyBuilder.AppendLine("      </audiences>");
         policyBuilder.AppendLine("    </validate-jwt>");
+        policyBuilder.AppendLine("    <cors>");
+        policyBuilder.AppendLine("      <allowed-origins>");
+        policyBuilder.AppendLine("        <origin>*</origin>"); // TODO: proper url
+        policyBuilder.AppendLine("      </allowed-origins>");
+        policyBuilder.AppendLine("      <allowed-methods>");
+        policyBuilder.AppendLine("        <method>GET</method>");
+        policyBuilder.AppendLine("        <method>POST</method>");
+        policyBuilder.AppendLine("        <method>PUT</method>");
+        policyBuilder.AppendLine("        <method>DELETE</method>");
+        policyBuilder.AppendLine("      </allowed-methods>");
+        policyBuilder.AppendLine("      <allowed-headers>");
+        policyBuilder.AppendLine("        <header>*</header>");
+        policyBuilder.AppendLine("      </allowed-headers>");
+        policyBuilder.AppendLine("    </cors>");
         policyBuilder.AppendLine("  </inbound>");
         policyBuilder.AppendLine("</policies>");
 
