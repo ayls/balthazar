@@ -98,7 +98,7 @@ class BalthazarStack : Stack
                 Cors = new FunctionAppSiteConfigCorsArgs()
                 {
                     //AllowedOrigins = new[] { storageAccount.PrimaryWebEndpoint.Apply(s => s.TrimEnd('/')) }
-                    AllowedOrigins = new[] { "*" }
+                    AllowedOrigins = new[] { "*" } // TODO: set to apim url
                 }                
             },
             AppSettings =
@@ -173,7 +173,7 @@ class BalthazarStack : Stack
         policyBuilder.AppendLine("    </validate-jwt>");
         policyBuilder.AppendLine("    <cors>");
         policyBuilder.AppendLine("      <allowed-origins>");
-        policyBuilder.AppendLine("        <origin>*</origin>"); // TODO: proper url
+        policyBuilder.AppendLine("        <origin>*</origin>"); // TODO: set to frontend url
         policyBuilder.AppendLine("      </allowed-origins>");
         policyBuilder.AppendLine("      <allowed-methods>");
         policyBuilder.AppendLine("        <method>GET</method>");
