@@ -111,7 +111,6 @@ export default Vue.extend({
       loading.close();
     },    
     handleCommand(command: string) {
-      console.log(command);
       switch (command) {
         case 'addFolder':
           this.append(true);
