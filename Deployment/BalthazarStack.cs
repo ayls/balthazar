@@ -23,9 +23,9 @@ class BalthazarStack : Stack
         var config = new Config();
         var resourceGroup = CreateResourceGroup();
         var storageAccount = CreateStorageAccount(resourceGroup);
-        var functionApp = DeployFunctionApp(resourceGroup, storageAccount);
         var apiManagement = DeployApiManagement(resourceGroup, config);
-        var api = DeployApi(resourceGroup, apiManagement, functionApp, config);
+        var functionApp = DeployFunctionApp(resourceGroup, storageAccount, apiManagement);
+        var api = DeployApi(resourceGroup, apiManagement, functionApp, storageAccount, config);
         DeployWebApp(storageAccount, apiManagement, api, config);
 
         // Export the app's web address
@@ -60,7 +60,7 @@ class BalthazarStack : Stack
         });
     }
 
-    private static FunctionApp DeployFunctionApp(ResourceGroup resourceGroup, Account storageAccount)
+    private static FunctionApp DeployFunctionApp(ResourceGroup resourceGroup, Account storageAccount, Service apiManagement)
     {
         var appServicePlan = new Plan("balthazarappsvc", new PlanArgs
         {
@@ -97,9 +97,25 @@ class BalthazarStack : Stack
             {
                 Cors = new FunctionAppSiteConfigCorsArgs()
                 {
-                    //AllowedOrigins = new[] { storageAccount.PrimaryWebEndpoint.Apply(s => s.TrimEnd('/')) }
-                    AllowedOrigins = new[] { "*" } // TODO: setup keys
-                }                
+                    AllowedOrigins = new[] { "*" }
+                },
+                IpRestrictions = new InputList<FunctionAppSiteConfigIpRestrictionArgs>()
+                {
+                    new FunctionAppSiteConfigIpRestrictionArgs()
+                    {
+                        Name = "Allow Api Management",
+                        Priority = 100,
+                        Action = "Allow",
+                        IpAddress = Output.Format($"{apiManagement.PublicIpAddresses.First()}/32")
+                    },
+                    new FunctionAppSiteConfigIpRestrictionArgs()
+                    {
+                        Name = "Deny All",
+                        Priority = 200,
+                        Action = "Deny",
+                        IpAddress = "0.0.0.0/0"
+                    }
+                }
             },
             AppSettings =
             {
@@ -130,7 +146,7 @@ class BalthazarStack : Stack
         return apiManagement;
     }
 
-    private static Api DeployApi(ResourceGroup resourceGroup, Service apiManagement, FunctionApp functionApp, Config config)
+    private static Api DeployApi(ResourceGroup resourceGroup, Service apiManagement, FunctionApp functionApp, Account storageAccount, Config config)
     {
         var api = new Api("balthazarappapi", new ApiArgs()
         {
@@ -153,42 +169,35 @@ class BalthazarStack : Stack
             ResourceGroupName = resourceGroup.Name,
             ApiManagementName = apiManagement.Name,
             ApiName = api.Name,
-            XmlContent = GetPolicy(config)
+            XmlContent = Output.Format(
+                $@"<policies>
+                     <inbound>
+                       <base />
+                       <validate-jwt header-name=""Authorization"" failed-validation-httpcode=""401"" require-expiration-time=""true"" require-scheme=""Bearer"" require-signed-tokens=""true"">
+                         <openid-config url=""{config.Require("authOpenIdConfigUrl")}"" />
+                         <audiences>
+                           <audience>{config.Require("authAudience")}</audience>
+                         </audiences>
+                       </validate-jwt>
+                       <cors>
+                         <allowed-origins>
+                           <origin>{storageAccount.PrimaryWebEndpoint.Apply(s => s.TrimEnd('/'))}</origin>
+                         </allowed-origins>
+                         <allowed-methods>
+                           <method>GET</method>
+                           <method>POST</method>
+                           <method>PUT</method>
+                           <method>DELETE</method>
+                         </allowed-methods>
+                         <allowed-headers>
+                           <header>*</header>
+                         </allowed-headers>
+                       </cors>
+                     </inbound>
+                   </policies>")
         });
 
         return api;
-    }
-
-    private static string GetPolicy(Config config)
-    {
-        var policyBuilder = new StringBuilder();
-        policyBuilder.AppendLine("<policies>");
-        policyBuilder.AppendLine("  <inbound>");
-        policyBuilder.AppendLine("    <base />");
-        policyBuilder.AppendLine($"    <validate-jwt header-name=\"Authorization\" failed-validation-httpcode=\"401\" require-expiration-time=\"true\" require-scheme=\"Bearer\" require-signed-tokens=\"true\">");
-        policyBuilder.AppendLine($"      <openid-config url=\"{config.Require("authOpenIdConfigUrl")}\" />");
-        policyBuilder.AppendLine("      <audiences>");
-        policyBuilder.AppendLine($"        <audience>{config.Require("authAudience")}</audience>");
-        policyBuilder.AppendLine("      </audiences>");
-        policyBuilder.AppendLine("    </validate-jwt>");
-        policyBuilder.AppendLine("    <cors>");
-        policyBuilder.AppendLine("      <allowed-origins>");
-        policyBuilder.AppendLine("        <origin>*</origin>"); // TODO: set to frontend url
-        policyBuilder.AppendLine("      </allowed-origins>");
-        policyBuilder.AppendLine("      <allowed-methods>");
-        policyBuilder.AppendLine("        <method>GET</method>");
-        policyBuilder.AppendLine("        <method>POST</method>");
-        policyBuilder.AppendLine("        <method>PUT</method>");
-        policyBuilder.AppendLine("        <method>DELETE</method>");
-        policyBuilder.AppendLine("      </allowed-methods>");
-        policyBuilder.AppendLine("      <allowed-headers>");
-        policyBuilder.AppendLine("        <header>*</header>");
-        policyBuilder.AppendLine("      </allowed-headers>");
-        policyBuilder.AppendLine("    </cors>");
-        policyBuilder.AppendLine("  </inbound>");
-        policyBuilder.AppendLine("</policies>");
-
-        return policyBuilder.ToString();
     }
 
     private static void DeployWebApp(Account storageAccount, Service apiManagement, Api api, Config config)
