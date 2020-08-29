@@ -56,7 +56,7 @@ export default {
     plugins: [ '~/plugins/auth.js' ],
     redirect: {
       login: '/login',
-      logout: '/',
+      logout: '/login',
       callback: '/callback',
       home: '/'
     },    
