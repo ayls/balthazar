@@ -61,7 +61,7 @@ stages:
             balthazar:authAudience: $(AUTH_AUDIENCE)
             azure:location: $(AZURE_LOCATION)
           EOF
-      workingDirectory: '$(Build.ArtifactStagingDirectory)/Deployment'
+        workingDirectory: '$(Build.ArtifactStagingDirectory)/Deployment'
     - task: PublishBuildArtifacts@1
       displayName: '[Artifact] publish'
       inputs:
