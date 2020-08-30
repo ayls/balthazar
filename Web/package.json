@@ -12,9 +12,10 @@
     "lint": "eslint --ext .js,.vue --ignore-path .gitignore ."
   },
   "dependencies": {
+    "@nuxtjs/auth": "^4.9.1",
     "@nuxtjs/axios": "^5.3.6",
     "element-ui": "^2.4.11",
-    "lodash": "^4.17.19",
+    "lodash": "^4.17.20",
     "nuxt": "^2.0.0"
   },
   "devDependencies": {
@@ -22,6 +23,7 @@
     "@nuxtjs/eslint-config-typescript": "^1.0.0",
     "@nuxtjs/eslint-module": "^1.0.0",
     "@types/lodash": "^4.14.149",
+    "@types/nuxtjs__auth": "^4.8.4",
     "babel-eslint": "^10.0.1",
     "eslint": "^6.1.0",
     "eslint-config-prettier": "^6.10.0",

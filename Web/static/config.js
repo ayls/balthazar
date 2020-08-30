@@ -1,1 +1,1 @@
-window.config = null;
+window.config = undefined;

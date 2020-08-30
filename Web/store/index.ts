@@ -1,9 +1,6 @@
 import _ from 'lodash'
 
-const apiBase = (window as any).config?.apiBase || process.env.apiBase;
-
 export interface BookmarkState {
-  apiBase: string,
   bookmarks: BookmarkStateItem[]
 }
 
@@ -27,19 +24,18 @@ export interface BookmarkRecord {
 }
 
 export const state = (): BookmarkState => ({
-  apiBase: apiBase,
   bookmarks: []
 })
 
 export const actions = {
   async load ({ commit }: { commit: any }) {
-    const bookmarkRecords = await (this as any).$axios.$get(`${apiBase}/List`);
+    const bookmarkRecords = await (this as any).$axios.$get('List');
     commit('load', { bookmarkRecords });
   },
   async endEdit ({ commit }: { commit: any }, { bookmark, confirmed }: { bookmark: BookmarkStateItem, confirmed: boolean }) {
     if (confirmed && !bookmark.id) {
       const bookmarkRecord = await (this as any).$axios.$post(
-        `${apiBase}/Add`, 
+        'Add', 
         {
           parentRowKey: bookmark.record.parentRowKey,
           name: bookmark.record.name,
@@ -52,7 +48,7 @@ export const actions = {
     } 
     else if (confirmed && bookmark.id) {
       const bookmarkRecord = await (this as any).$axios.$put(
-        `${apiBase}/Update`, 
+        'Update', 
         bookmark.record
       );      
       commit('endUpdate', { bookmark, bookmarkRecord });            
@@ -67,7 +63,7 @@ export const actions = {
     const updatedBookmarkParent = findBookmarkParent({ children: state.bookmarks } as BookmarkStateItem, updatedBookmark!);
     for(const item of updatedBookmarkParent!.children) {
       const bookmarkRecord = await (this as any).$axios.$put(
-        `${apiBase}/Update`, 
+        'Update', 
         item.record
       );       
       commit('endUpdate', { bookmark, bookmarkRecord });            
@@ -76,7 +72,7 @@ export const actions = {
   async remove ({ commit }: { commit: any }, { bookmark }: { bookmark: BookmarkStateItem }) {
     const recursiveDelete = async (bookmark: BookmarkStateItem) => {
       await (this as any).$axios.$delete(
-        `${apiBase}/Delete`,
+        'Delete',
         {
           data: bookmark.record
         }
