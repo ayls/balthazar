@@ -3,7 +3,7 @@
   "Values": {
     "AzureWebJobsStorage": "UseDevelopmentStorage=true",
     "FUNCTIONS_WORKER_RUNTIME": "dotnet",
-    "BookmarkCollectionConnectionString": "DefaultEndpointsProtocol=https;AccountName=balthazarstrg460ff71d;AccountKey=vHZEaCVHe7GE7ZaffkThmrUHlTZrd0rZHWUCfe/ajcVtpy1OJxPiVIQoWjhucTFGhCvVkEgQS9OQUvzmw6v0hQ==;EndpointSuffix=core.windows.net"
+    "BookmarkCollectionConnectionString": "<Connection string here>"
   },
   "Host": {
     "CORS": "*"
