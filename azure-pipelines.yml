@@ -47,6 +47,21 @@ stages:
         SourceFolder: 'Deployment'
         Contents: '**'
         TargetFolder: '$(Build.ArtifactStagingDirectory)/Deployment'
+    - task: Bash@3
+      displayName: '[Artifact] generate Pulumi config'
+      inputs:
+        targetType: 'inline'
+        script: |
+          cat > $(PULUMI_CONFIG_FILE) <<EOF
+          config:
+            balthazar:apmPublisherEmail: $(APM_PUBLISHER_EMAIL)
+            balthazar:apmPublisherName: $(APM_PUBLISHER_NAME)
+            balthazar:authOpenIdConfigUrl: $(AUTH_OPENID_CONFIG_URL)
+            balthazar:authEndpoint: $(AUTH_ENDPOINT)
+            balthazar:authAudience: $(AUTH_AUDIENCE)
+            azure:location: $(AZURE_LOCATION)
+          EOF
+      workingDirectory: '$(Build.ArtifactStagingDirectory)/Deployment'
     - task: PublishBuildArtifacts@1
       displayName: '[Artifact] publish'
       inputs:
@@ -59,7 +74,7 @@ stages:
         azureSubscription: 'Azure'
         command: 'preview'
         cwd: "$(Build.ArtifactStagingDirectory)/Deployment"
-        stack: "fajrvehr/balthazar/test"
+        stack: "$(PULUMI_STACK)"
       env:
         PULUMI_ACCESS_TOKEN: $(PULUMI_ACCESS_TOKEN)
 - stage: deploy
@@ -78,7 +93,7 @@ stages:
               command: up
               cwd: "$(Agent.BuildDirectory)/drop/Deployment"
               args: "--yes"
-              stack: "fajrvehr/balthazar/test"
+              stack: "$(PULUMI_STACK)"
             env:
               PULUMI_ACCESS_TOKEN: $(PULUMI_ACCESS_TOKEN)
 
