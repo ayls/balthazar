@@ -3,7 +3,7 @@
   "Values": {
     "AzureWebJobsStorage": "UseDevelopmentStorage=true",
     "FUNCTIONS_WORKER_RUNTIME": "dotnet",
-    "BookmarkCollectionConnectionString": "<Connection string here>"
+    "BookmarkCollectionConnectionString": "<connection string to azure table here>"
   },
   "Host": {
     "CORS": "*"
