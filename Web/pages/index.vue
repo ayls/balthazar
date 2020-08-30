@@ -26,10 +26,11 @@
                 ref="uploadFile">
                 <el-dropdown-item>Import</el-dropdown-item>
               </el-upload>
-              <el-dropdown-item divided command="addFolder">New folder</el-dropdown-item>                        
-              <el-dropdown-item command="addUrl">New url</el-dropdown-item>                        
-              <el-dropdown-item divided command="expandAll">Expand all</el-dropdown-item>          
-              <el-dropdown-item command="collapseAll">Collapse all</el-dropdown-item>                                      
+              <el-dropdown-item divided command="addFolder">New folder</el-dropdown-item>
+              <el-dropdown-item command="addUrl">New url</el-dropdown-item>
+              <el-dropdown-item divided command="expandAll">Expand all</el-dropdown-item>
+              <el-dropdown-item command="collapseAll">Collapse all</el-dropdown-item>
+              <el-dropdown-item divided command="signOut">Sign out</el-dropdown-item>                                      
             </el-dropdown-menu>
           </el-dropdown>
         </div>
@@ -123,7 +124,10 @@ export default Vue.extend({
           break;
         case 'collapseAll':
           this.collapseAll();
-          break;          
+          break;
+        case 'signOut':
+          this.$auth.logout();
+          break;
       }
     },
     async handleImportCompleted() {
