@@ -59,6 +59,7 @@ stages:
             balthazar:authOpenIdConfigUrl: $(AUTH_OPENID_CONFIG_URL)
             balthazar:authEndpoint: $(AUTH_ENDPOINT)
             balthazar:authAudience: $(AUTH_AUDIENCE)
+            balthazar:domainUrl: $(DOMAIN_URL)
             azure:location: $(AZURE_LOCATION)
           EOF
         workingDirectory: '$(Build.ArtifactStagingDirectory)/Deployment'

@@ -181,7 +181,7 @@ class BalthazarStack : Stack
                        </validate-jwt>
                        <cors>
                          <allowed-origins>
-                           <origin>{storageAccount.PrimaryWebEndpoint.Apply(s => s.TrimEnd('/'))}</origin>
+                           <origin>{storageAccount.PrimaryWebEndpoint.Apply(s => config.Get("domainUrl") ?? s.TrimEnd('/'))}</origin>
                          </allowed-origins>
                          <allowed-methods>
                            <method>GET</method>
