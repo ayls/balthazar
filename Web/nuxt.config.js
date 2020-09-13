@@ -38,10 +38,10 @@ export default {
    ** Nuxt.js modules
    */
   modules: [
-    // Doc: https://axios.nuxtjs.org/usage
+    // Doc: https://axios.nuxtjs.org
     '@nuxtjs/axios',
-    // Doc: https://axios.nuxtjs.org/usage 
-    '@nuxtjs/auth'    
+    // Doc: https://dev.auth.nuxtjs.org
+    '@nuxtjs/auth-next'    
   ],
   /*
    ** Axios module configuration
@@ -63,18 +63,22 @@ export default {
     strategies: {
       local: false,
       oAuth2: {
-        _scheme: 'oauth2',
-        authorization_endpoint: 'http://localhost:5001/auth',
-        userinfo_endpoint: false,
+        scheme: 'oauth2',
+        endpoints: {
+          authorization: 'http://localhost:5001/auth',
+          token: false,
+          userinfo: false,
+          logout: false
+        },
+        token: {
+          property: 'id_token',
+          type: 'Bearer'   
+        },
+        responseType: 'id_token',        
+        clientId: 'balthazar-dev',
         scope: ['openid'],
-        access_type: undefined,
-        access_token_endpoint: undefined,
-        response_type: 'id_token',
-        token_type: 'Bearer',
-        redirect_uri: undefined,
-        client_id: 'balthazar-dev',
-        token_key: 'id_token',
-        state: 'UNIQUE_AND_NON_GUESSABLE'
+        state: 'UNIQUE_AND_NON_GUESSABLE',
+        autoLogout: true
       }      
     }
   },
