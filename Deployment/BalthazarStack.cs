@@ -2,7 +2,6 @@ using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
-using System.Text;
 using HeyRed.Mime;
 using Pulumi;
 using Pulumi.Azure.ApiManagement;
@@ -18,13 +17,16 @@ class BalthazarStack : Stack
     [Output]
     public Output<string> WebEndpoint { get; set; }
 
+    private static string ResourceGroupName = $"{Deployment.Instance.ProjectName}-{Deployment.Instance.StackName}";
+    private static string FunctionAppName = $"{Deployment.Instance.ProjectName}-{Deployment.Instance.StackName}-app";
+
     public BalthazarStack()
     {
         var config = new Config();
         var resourceGroup = CreateResourceGroup();
         var storageAccount = CreateStorageAccount(resourceGroup);
+        var functionApp = DeployFunctionApp(resourceGroup, storageAccount);
         var apiManagement = DeployApiManagement(resourceGroup, config);
-        var functionApp = DeployFunctionApp(resourceGroup, storageAccount, apiManagement);
         var api = DeployApi(resourceGroup, apiManagement, functionApp, storageAccount, config);
         DeployWebApp(storageAccount, apiManagement, api, config);
 
@@ -40,7 +42,8 @@ class BalthazarStack : Stack
             {
                 { "Project", Deployment.Instance.ProjectName },
                 { "Environment", Deployment.Instance.StackName },
-            }
+            }, 
+            Name = ResourceGroupName
         });
     }
 
@@ -60,7 +63,7 @@ class BalthazarStack : Stack
         });
     }
 
-    private static FunctionApp DeployFunctionApp(ResourceGroup resourceGroup, Account storageAccount, Service apiManagement)
+    private static FunctionApp DeployFunctionApp(ResourceGroup resourceGroup, Account storageAccount)
     {
         var appServicePlan = new Plan("balthazarappsvc", new PlanArgs
         {
@@ -98,23 +101,6 @@ class BalthazarStack : Stack
                 Cors = new FunctionAppSiteConfigCorsArgs()
                 {
                     AllowedOrigins = new[] { "*" }
-                },
-                IpRestrictions = new InputList<FunctionAppSiteConfigIpRestrictionArgs>()
-                {
-                    new FunctionAppSiteConfigIpRestrictionArgs()
-                    {
-                        Name = "Allow Api Management",
-                        Priority = 100,
-                        Action = "Allow",
-                        IpAddress = Output.Format($"{apiManagement.PublicIpAddresses.First()}/32")
-                    },
-                    new FunctionAppSiteConfigIpRestrictionArgs()
-                    {
-                        Name = "Deny All",
-                        Priority = 200,
-                        Action = "Deny",
-                        IpAddress = "0.0.0.0/0"
-                    }
                 }
             },
             AppSettings =
@@ -125,7 +111,8 @@ class BalthazarStack : Stack
             },
             StorageAccountName = storageAccount.Name,
             StorageAccountAccessKey = storageAccount.PrimaryAccessKey,
-            Version = "~3"
+            Version = "~3",
+            Name = FunctionAppName
         });
     }
 
@@ -148,6 +135,16 @@ class BalthazarStack : Stack
 
     private static Api DeployApi(ResourceGroup resourceGroup, Service apiManagement, FunctionApp functionApp, Account storageAccount, Config config)
     {
+        var primaryKey = Output.Create(
+            GetFunctionAppHostKeys.InvokeAsync(new GetFunctionAppHostKeysArgs
+            {
+                Name = FunctionAppName,
+                ResourceGroupName = ResourceGroupName
+            })
+            .Result
+            .PrimaryKey
+        );
+
         var api = new Api("balthazarappapi", new ApiArgs()
         {
             ResourceGroupName = resourceGroup.Name,
@@ -159,9 +156,10 @@ class BalthazarStack : Stack
             Import = new ApiImportArgs
             {
                 ContentFormat = "openapi-link",
-                ContentValue = Output.Format($"https://{functionApp.DefaultHostname}/api/Swagger"),
+                ContentValue = Output.Format($"https://{functionApp.DefaultHostname}/api/Swagger?code={primaryKey}"),
             },
-            Revision = "1"
+            Revision = "1",
+            SubscriptionRequired = false
         });
 
         new ApiPolicy("balthazarappapipolicy", new ApiPolicyArgs()
@@ -193,6 +191,9 @@ class BalthazarStack : Stack
                            <header>*</header>
                          </allowed-headers>
                        </cors>
+                       <set-query-parameter name=""code"" exists-action=""override"">
+                         <value>{primaryKey}</value>
+                       </set-query-parameter>
                      </inbound>
                    </policies>")
         });

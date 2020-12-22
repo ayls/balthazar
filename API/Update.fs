@@ -10,7 +10,7 @@ open Newtonsoft.Json
 
 module Update =  
     [<FunctionName("Update")>]
-    let Run ([<HttpTrigger(AuthorizationLevel.Anonymous, [|"put"|])>] req: HttpRequest) (log: ILogger) = 
+    let Run ([<HttpTrigger(AuthorizationLevel.Admin, [|"put"|])>] req: HttpRequest) (log: ILogger) = 
         async {
             let! body = 
                 new StreamReader(req.Body) 

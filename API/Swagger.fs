@@ -10,5 +10,5 @@ open System.Net.Http
 module Swagger =
     [<SwaggerIgnore()>]
     [<FunctionName("Swagger")>]
-    let Run ([<HttpTrigger(AuthorizationLevel.Anonymous, [|"get"|])>] req: HttpRequestMessage) ([<SwashBuckleClient()>] swashBuckleClient: ISwashBuckleClient) (log: ILogger) = 
+    let Run ([<HttpTrigger(AuthorizationLevel.Admin, [|"get"|])>] req: HttpRequestMessage) ([<SwashBuckleClient()>] swashBuckleClient: ISwashBuckleClient) (log: ILogger) = 
         swashBuckleClient.CreateSwaggerDocumentResponse(req)

@@ -9,7 +9,7 @@ open System.IO
 
 module Import =  
     [<FunctionName("Import")>]
-    let Run ([<HttpTrigger(AuthorizationLevel.Anonymous, [|"post"|])>] req: HttpRequest) (log: ILogger) = 
+    let Run ([<HttpTrigger(AuthorizationLevel.Admin, [|"post"|])>] req: HttpRequest) (log: ILogger) = 
         async {
             let! body = 
                 new StreamReader(req.Body) 
