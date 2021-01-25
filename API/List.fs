@@ -8,7 +8,7 @@ open Microsoft.Extensions.Logging;
 
 module List =
     [<FunctionName("List")>]
-    let Run ([<HttpTrigger(AuthorizationLevel.Admin, [|"get"|])>] req: HttpRequest) (log: ILogger) = 
+    let Run ([<HttpTrigger(AuthorizationLevel.Anonymous, [|"get"|])>] req: HttpRequest) (log: ILogger) = 
         async {
             let table = new BookmarkStorage.BookmarkTable(Config.getConnectionString)
             return table.list(Config.getPartitionKey)

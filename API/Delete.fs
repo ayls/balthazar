@@ -10,7 +10,7 @@ open Newtonsoft.Json
 
 module Delete =  
     [<FunctionName("Delete")>]
-    let Run ([<HttpTrigger(AuthorizationLevel.Admin, [|"delete"|])>] req: HttpRequest) (log: ILogger) = 
+    let Run ([<HttpTrigger(AuthorizationLevel.Anonymous, [|"delete"|])>] req: HttpRequest) (log: ILogger) = 
         async {
             let! body = 
                 new StreamReader(req.Body) 

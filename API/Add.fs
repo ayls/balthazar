@@ -18,7 +18,7 @@ module Add =
         member val IsFolder = isFolder with get, set
     
     [<FunctionName("Add")>]
-    let Run ([<HttpTrigger(AuthorizationLevel.Admin, [|"post"|])>] req: HttpRequest) (log: ILogger) = 
+    let Run ([<HttpTrigger(AuthorizationLevel.Anonymous, [|"post"|])>] req: HttpRequest) (log: ILogger) = 
         async {
             let! body = 
                 new StreamReader(req.Body) 
