@@ -1,0 +1,76 @@
+﻿{
+  "openapi": "3.0.1",
+  "info": {
+    "title": "Balthazar API",
+    "description": "Swagger document by Swashbuckle",
+    "version": "v1"
+  },
+  "servers": [
+    {
+      "url": "http://localhost:7071"
+    }
+  ],
+  "paths": {
+    "/api/Add": {
+      "post": {
+        "tags": [
+          "Add"
+        ],
+        "responses": {
+          "200": {
+            "description": "Success"
+          }
+        }
+      }
+    },
+    "/api/Delete": {
+      "delete": {
+        "tags": [
+          "Delete"
+        ],
+        "responses": {
+          "200": {
+            "description": "Success"
+          }
+        }
+      }
+    },
+    "/api/Import": {
+      "post": {
+        "tags": [
+          "Import"
+        ],
+        "responses": {
+          "200": {
+            "description": "Success"
+          }
+        }
+      }
+    },
+    "/api/List": {
+      "get": {
+        "tags": [
+          "List"
+        ],
+        "responses": {
+          "200": {
+            "description": "Success"
+          }
+        }
+      }
+    },
+    "/api/Update": {
+      "put": {
+        "tags": [
+          "Update"
+        ],
+        "responses": {
+          "200": {
+            "description": "Success"
+          }
+        }
+      }
+    }
+  },
+  "components": {}
+}

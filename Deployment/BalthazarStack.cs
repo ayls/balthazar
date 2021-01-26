@@ -167,7 +167,7 @@ class BalthazarStack : Stack
             {
                 Cors = new FunctionAppSiteConfigCorsArgs()
                 {
-                    AllowedOrigins = new[] { "*" }
+                    AllowedOrigins = new[] { "*" } // TODO: limit to APIM
                 }                
             },
             AppSettings =
@@ -175,7 +175,7 @@ class BalthazarStack : Stack
                 {"runtime", "dotnet"},
                 {"WEBSITE_RUN_FROM_PACKAGE", functionAppDeploymentBlobUrl},
                 {"BookmarkCollectionConnectionString", storageAccount.PrimaryConnectionString}
-            },
+            },            
             AuthSettings = new FunctionAppAuthSettingsArgs()
             {
                 Enabled = true,
@@ -205,11 +205,11 @@ class BalthazarStack : Stack
             DisplayName = "Balthazar API",
             Path = "balthazar",
             Protocols = new InputList<string> { "https" },
-            ServiceUrl = Output.Format($"https://{functionApp.DefaultHostname}"),
+            ServiceUrl = Output.Format($"https://{functionApp.DefaultHostname}"),            
             Import = new ApiImportArgs
             {
-                ContentFormat = "openapi-link",
-                ContentValue = Output.Format($"https://{functionApp.DefaultHostname}/api/Swagger"), // TODO: find a way to upload the swagger
+                ContentFormat = "openapi",
+                ContentValue = ReadOpenApiDefinition()
             },
             Revision = "1",
             SubscriptionRequired = false
@@ -293,5 +293,14 @@ class BalthazarStack : Stack
                 name: path.Remove(0, sourceFolderLength).Replace(Path.DirectorySeparatorChar, '/')            
             ))
             .Where(file => !ignoredFiles.Contains(file.name));
+    }
+
+    private static string ReadOpenApiDefinition()
+    {
+        var currentDirectory = Directory.GetCurrentDirectory();
+        var rootDirectory = Directory.GetParent(currentDirectory).FullName;
+        var openApiDefinitionPath = Path.Combine(rootDirectory, "API", "openapi-definition.json");
+
+        return File.ReadAllText(openApiDefinitionPath);
     }
 }
