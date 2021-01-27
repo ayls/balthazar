@@ -3,7 +3,7 @@
 ## Build Setup
 
 1. Create an Azure Storage account
-2. Configure setting in local.setting.json:
+2. Configure settings in local.setting.json:
 ```
 {
   "IsEncrypted": false,
@@ -21,7 +21,7 @@
 
 ## Troubleshooting
 
-If the API won't connect to the storage account (happens because the local.settings.json configuration is not picked up) rebuild the API and try again. 
+If the API won't connect to the storage account (happens because the local.settings.json configuration is not copied to bin folder) rebuild the API and try again. 
 
 
 

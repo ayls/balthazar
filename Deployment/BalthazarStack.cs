@@ -2,7 +2,6 @@ using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
-using System.Text;
 using HeyRed.Mime;
 using Pulumi;
 using Pulumi.Azure.ApiManagement;
@@ -18,14 +17,18 @@ class BalthazarStack : Stack
     [Output]
     public Output<string> WebEndpoint { get; set; }
 
+    private static string ResourceGroupName = $"{Deployment.Instance.ProjectName}-{Deployment.Instance.StackName}";
+
     public BalthazarStack()
     {
         var config = new Config();
         var resourceGroup = CreateResourceGroup();
         var storageAccount = CreateStorageAccount(resourceGroup);
         var apiManagement = DeployApiManagement(resourceGroup, config);
-        var functionApp = DeployFunctionApp(resourceGroup, storageAccount, apiManagement);
-        var api = DeployApi(resourceGroup, apiManagement, functionApp, storageAccount, config);
+        var functionAppRegistration = DeployFunctionAppRegistration();
+        var functionAppRegistrationClientSecret = DeployAppRegistrationClientSecret(functionAppRegistration);
+        var functionApp = DeployFunctionApp(resourceGroup, storageAccount, functionAppRegistration, functionAppRegistrationClientSecret, apiManagement);
+        var api = DeployApi(resourceGroup, apiManagement, functionApp, functionAppRegistration, storageAccount, config);
         DeployWebApp(storageAccount, apiManagement, api, config);
 
         // Export the app's web address
@@ -40,7 +43,8 @@ class BalthazarStack : Stack
             {
                 { "Project", Deployment.Instance.ProjectName },
                 { "Environment", Deployment.Instance.StackName },
-            }
+            },
+            Name = ResourceGroupName
         });
     }
 
@@ -60,7 +64,76 @@ class BalthazarStack : Stack
         });
     }
 
-    private static FunctionApp DeployFunctionApp(ResourceGroup resourceGroup, Account storageAccount, Service apiManagement)
+    private static Service DeployApiManagement(ResourceGroup resourceGroup, Config config)
+    {
+        var apiManagement = new Service("balthazarapm", new ServiceArgs()
+        {
+            ResourceGroupName = resourceGroup.Name,
+            SkuName = "Consumption_0",
+            PublisherEmail = config.Require("apmPublisherEmail"),
+            PublisherName = config.Require("apmPublisherName"),
+            Identity = new ServiceIdentityArgs()
+            {
+                Type = "SystemAssigned"
+            }
+        });
+
+        return apiManagement;
+    }
+
+    private static Pulumi.AzureAD.Application DeployFunctionAppRegistration()
+    {
+        return new Pulumi.AzureAD.Application("balthazarappregistration", new Pulumi.AzureAD.ApplicationArgs
+        {
+            AvailableToOtherTenants = false,
+            DisplayName = $"{ResourceGroupName}-app-registration",
+            Oauth2AllowImplicitFlow = false,
+            IdentifierUris =
+            {
+                $"https://{ResourceGroupName}-app.azurewebsites.net",
+            },
+            ReplyUrls =
+            {
+               $"https://{ResourceGroupName}-app.azurewebsites.net/.auth/login/aad/callback",
+            },
+            RequiredResourceAccesses =
+            {
+                new Pulumi.AzureAD.Inputs.ApplicationRequiredResourceAccessArgs
+                {
+                    ResourceAccesses =
+                    {
+                        new Pulumi.AzureAD.Inputs.ApplicationRequiredResourceAccessResourceAccessArgs
+                        {
+                            Id = "311a71cc-e848-46a1-bdf8-97ff7156d8e6",
+                            Type = "Scope",
+                        },
+                    },
+                    ResourceAppId = "00000002-0000-0000-C000-000000000000",
+                },
+            },
+        });
+    }
+
+    private static Pulumi.AzureAD.ApplicationPassword DeployAppRegistrationClientSecret(Pulumi.AzureAD.Application functionAppRegistration)
+    {
+        return new Pulumi.AzureAD.ApplicationPassword("balthazarappregistrationpwd", 
+            new Pulumi.AzureAD.ApplicationPasswordArgs
+            {
+                ApplicationObjectId = functionAppRegistration.Id,
+                Description = "Function App Client Secret",
+                Value = Guid.NewGuid().ToString(),
+                StartDate = $"{DateTime.UtcNow:yyyy-MM-ddT00:00:00Z}",
+                EndDate = $"{DateTime.UtcNow.AddYears(5):yyyy-MM-ddT00:00:00Z}",
+            }
+        );
+    }
+
+    private static FunctionApp DeployFunctionApp(
+        ResourceGroup resourceGroup, 
+        Account storageAccount, 
+        Pulumi.AzureAD.Application functionAppRegistration, 
+        Pulumi.AzureAD.ApplicationPassword functionAppRegistrationPwd,
+        Service apiManagement)
     {
         var appServicePlan = new Plan("balthazarappsvc", new PlanArgs
         {
@@ -89,6 +162,8 @@ class BalthazarStack : Stack
 
         var functionAppDeploymentBlobUrl = SharedAccessSignature.SignedBlobReadUrl(functionAppDeploymentBlob, storageAccount);
 
+        var pulumiClientConfig = Output.Create(Pulumi.AzureAD.GetClientConfig.InvokeAsync());
+        var tenantId = pulumiClientConfig.Apply(c => c.TenantId);
         return new FunctionApp("balthazarapp", new FunctionAppArgs
         {
             ResourceGroupName = resourceGroup.Name,
@@ -97,56 +172,36 @@ class BalthazarStack : Stack
             {
                 Cors = new FunctionAppSiteConfigCorsArgs()
                 {
-                    AllowedOrigins = new[] { "*" }
-                },
-                IpRestrictions = new InputList<FunctionAppSiteConfigIpRestrictionArgs>()
-                {
-                    new FunctionAppSiteConfigIpRestrictionArgs()
-                    {
-                        Name = "Allow Api Management",
-                        Priority = 100,
-                        Action = "Allow",
-                        IpAddress = Output.Format($"{apiManagement.PublicIpAddresses.First()}/32")
-                    },
-                    new FunctionAppSiteConfigIpRestrictionArgs()
-                    {
-                        Name = "Deny All",
-                        Priority = 200,
-                        Action = "Deny",
-                        IpAddress = "0.0.0.0/0"
-                    }
-                }
+                    AllowedOrigins = new[] { apiManagement.GatewayUrl }
+                }                
             },
             AppSettings =
             {
                 {"runtime", "dotnet"},
                 {"WEBSITE_RUN_FROM_PACKAGE", functionAppDeploymentBlobUrl},
                 {"BookmarkCollectionConnectionString", storageAccount.PrimaryConnectionString}
+            },            
+            AuthSettings = new FunctionAppAuthSettingsArgs()
+            {
+                Enabled = true,
+                DefaultProvider = "AzureActiveDirectory",
+                UnauthenticatedClientAction = "RedirectToLoginPage",
+                ActiveDirectory = new FunctionAppAuthSettingsActiveDirectoryArgs()
+                {
+                    ClientId = functionAppRegistration.ApplicationId,
+                    ClientSecret = functionAppRegistrationPwd.Value
+                },
+                Issuer = Output.Format($"https://sts.windows.net/{tenantId}/"),
+                TokenStoreEnabled = true                
             },
             StorageAccountName = storageAccount.Name,
             StorageAccountAccessKey = storageAccount.PrimaryAccessKey,
-            Version = "~3"
+            Version = "~3",
+            Name = $"{ResourceGroupName}-app"
         });
     }
 
-    private static Service DeployApiManagement(ResourceGroup resourceGroup, Config config)
-    {
-        var apiManagement = new Service("balthazarapm", new ServiceArgs()
-        {
-            ResourceGroupName = resourceGroup.Name,
-            SkuName = "Developer_1",
-            PublisherEmail = config.Require("apmPublisherEmail"),
-            PublisherName = config.Require("apmPublisherName"),
-            Identity = new ServiceIdentityArgs()
-            {
-                Type = "SystemAssigned"
-            }
-        });
-
-        return apiManagement;
-    }
-
-    private static Api DeployApi(ResourceGroup resourceGroup, Service apiManagement, FunctionApp functionApp, Account storageAccount, Config config)
+    private static Api DeployApi(ResourceGroup resourceGroup, Service apiManagement, FunctionApp functionApp, Pulumi.AzureAD.Application functionAppRegistration, Account storageAccount, Config config)
     {
         var api = new Api("balthazarappapi", new ApiArgs()
         {
@@ -155,13 +210,14 @@ class BalthazarStack : Stack
             DisplayName = "Balthazar API",
             Path = "balthazar",
             Protocols = new InputList<string> { "https" },
-            ServiceUrl = Output.Format($"https://{functionApp.DefaultHostname}"),
+            ServiceUrl = Output.Format($"https://{functionApp.DefaultHostname}"),            
             Import = new ApiImportArgs
             {
-                ContentFormat = "openapi-link",
-                ContentValue = Output.Format($"https://{functionApp.DefaultHostname}/api/Swagger"),
+                ContentFormat = "openapi",
+                ContentValue = ReadOpenApiDefinition()
             },
-            Revision = "1"
+            Revision = "1",
+            SubscriptionRequired = false
         });
 
         new ApiPolicy("balthazarappapipolicy", new ApiPolicyArgs()
@@ -193,6 +249,7 @@ class BalthazarStack : Stack
                            <header>*</header>
                          </allowed-headers>
                        </cors>
+                       <authentication-managed-identity resource=""{functionAppRegistration.ApplicationId}"" ignore-error=""false"" />
                      </inbound>
                    </policies>")
         });
@@ -241,5 +298,14 @@ class BalthazarStack : Stack
                 name: path.Remove(0, sourceFolderLength).Replace(Path.DirectorySeparatorChar, '/')            
             ))
             .Where(file => !ignoredFiles.Contains(file.name));
+    }
+
+    private static string ReadOpenApiDefinition()
+    {
+        var currentDirectory = Directory.GetCurrentDirectory();
+        var rootDirectory = Directory.GetParent(currentDirectory).FullName;
+        var openApiDefinitionPath = Path.Combine(rootDirectory, "API", "openapi-definition.json");
+
+        return File.ReadAllText(openApiDefinitionPath);
     }
 }
