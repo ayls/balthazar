@@ -27,7 +27,7 @@ class BalthazarStack : Stack
         var apiManagement = DeployApiManagement(resourceGroup, config);
         var functionAppRegistration = DeployFunctionAppRegistration();
         var functionAppRegistrationClientSecret = DeployAppRegistrationClientSecret(functionAppRegistration);
-        var functionApp = DeployFunctionApp(resourceGroup, storageAccount, functionAppRegistration, functionAppRegistrationClientSecret);
+        var functionApp = DeployFunctionApp(resourceGroup, storageAccount, functionAppRegistration, functionAppRegistrationClientSecret, apiManagement);
         var api = DeployApi(resourceGroup, apiManagement, functionApp, functionAppRegistration, storageAccount, config);
         DeployWebApp(storageAccount, apiManagement, api, config);
 
@@ -128,7 +128,12 @@ class BalthazarStack : Stack
         );
     }
 
-    private static FunctionApp DeployFunctionApp(ResourceGroup resourceGroup, Account storageAccount, Pulumi.AzureAD.Application functionAppRegistration, Pulumi.AzureAD.ApplicationPassword functionAppRegistrationPwd)
+    private static FunctionApp DeployFunctionApp(
+        ResourceGroup resourceGroup, 
+        Account storageAccount, 
+        Pulumi.AzureAD.Application functionAppRegistration, 
+        Pulumi.AzureAD.ApplicationPassword functionAppRegistrationPwd,
+        Service apiManagement)
     {
         var appServicePlan = new Plan("balthazarappsvc", new PlanArgs
         {
@@ -167,7 +172,7 @@ class BalthazarStack : Stack
             {
                 Cors = new FunctionAppSiteConfigCorsArgs()
                 {
-                    AllowedOrigins = new[] { "*" } // TODO: limit to APIM
+                    AllowedOrigins = new[] { apiManagement.GatewayUrl }
                 }                
             },
             AppSettings =
