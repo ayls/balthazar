@@ -21,7 +21,7 @@ npm run build --prefix ../Web
 pulumi config set azure:location <location>
 pulumi config set balthazar:apmPublisherEmail <email>
 pulumi config set balthazar:apmPublisherName <name>
-pulumi config set balthazar:authOpenIdConfigUrl: <auth server openid config endpoint>
+pulumi config set balthazar:authOpenIdConfigUrl <auth server openid config endpoint>
 pulumi config set balthazar:authEndpoint: <auth server endpoint>
 pulumi config set balthazar:authAudience: <auth client id>
 pulumi up
