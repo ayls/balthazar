@@ -53,46 +53,40 @@ stages:
         SourceFolder: 'Deployment'
         Contents: '**'
         TargetFolder: '$(Build.ArtifactStagingDirectory)/Deployment'
-    - task: Bash@3
-      displayName: '[Artifact] generate Pulumi config'
-      inputs:
-        targetType: 'inline'
-        script: |
-          cat > $(PULUMI_CONFIG_FILE) <<EOF
-          config:
-            balthazar:apmPublisherEmail: $(APM_PUBLISHER_EMAIL)
-            balthazar:apmPublisherName: $(APM_PUBLISHER_NAME)
-            balthazar:authOpenIdConfigUrl: $(AUTH_OPENID_CONFIG_URL)
-            balthazar:authEndpoint: $(AUTH_ENDPOINT)
-            balthazar:authAudience: $(AUTH_AUDIENCE)
-            balthazar:domainUrl: $(DOMAIN_URL)
-            azure:location: $(AZURE_LOCATION)
-          EOF
-        workingDirectory: '$(Build.ArtifactStagingDirectory)/Deployment'
     - task: PublishBuildArtifacts@1
       displayName: '[Artifact] publish'
       inputs:
         PathtoPublish: '$(Build.ArtifactStagingDirectory)'
         ArtifactName: 'drop'
         publishLocation: 'Container'
-    - task: Pulumi@1
-      displayName: '[Pulumi] preview'
-      inputs:
-        azureSubscription: 'Azure'
-        command: 'preview'
-        cwd: "$(Build.ArtifactStagingDirectory)/Deployment"
-        stack: "$(PULUMI_STACK)"
-      env:
-        PULUMI_ACCESS_TOKEN: $(PULUMI_ACCESS_TOKEN)
-- stage: deploy
+- stage: preview
   jobs:
-  - deployment: deploy  
-    displayName: 'Deploy'
-    environment: 'BalthazarTest'    
+  - deployment: preview  
+    displayName: 'Preview'
     strategy:
       runOnce:
         deploy:    
           steps:
+          - template: azure-pipelines-create-pulumi-config.yml
+          - task: Pulumi@1
+            displayName: '[Pulumi] preview'
+            inputs:
+              azureSubscription: 'Azure'
+              command: 'preview'
+              cwd: "$(Agent.BuildDirectory)/drop/Deployment"
+              stack: "$(PULUMI_STACK)"
+            env:
+              PULUMI_ACCESS_TOKEN: $(PULUMI_ACCESS_TOKEN)
+- stage: deploy
+  jobs:
+  - deployment: deploy  
+    displayName: 'Deploy'
+    environment: 'Balthazar'    
+    strategy:
+      runOnce:
+        deploy:    
+          steps:
+          - template: azure-pipelines-create-pulumi-config.yml
           - task: Pulumi@1
             displayName: '[Pulumi] up'
             inputs:
