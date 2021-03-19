@@ -5,9 +5,9 @@ pool:
   vmImage: 'ubuntu-latest'
 
 stages:  
-- stage: build_and_preview
+- stage: build
   jobs:
-  - job: build_and_preview
+  - job: build
     displayName: 'Build and preview deployment'
     steps:
     - task: DotNetCoreCLI@2
