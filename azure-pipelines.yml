@@ -63,6 +63,7 @@ stages:
   jobs:
   - deployment: preview  
     displayName: 'Preview'
+    environment: 'BalthazarPreview'        
     strategy:
       runOnce:
         deploy:    
@@ -81,7 +82,7 @@ stages:
   jobs:
   - deployment: deploy  
     displayName: 'Deploy'
-    environment: 'Balthazar'    
+    environment: 'BalthazarDeploy'    
     strategy:
       runOnce:
         deploy:    
