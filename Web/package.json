@@ -15,7 +15,7 @@
     "@nuxtjs/auth-next": "^5.0.0-1595976864.509d9d6",
     "@nuxtjs/axios": "^5.3.6",
     "element-ui": "^2.4.11",
-    "lodash": "^4.17.20",
+    "lodash": "^4.17.21",
     "nuxt": "^2.0.0"
   },
   "devDependencies": {
